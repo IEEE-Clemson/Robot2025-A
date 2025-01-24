@@ -1,5 +1,6 @@
 
 import asyncio
+from dataclasses import Field
 import platform
 from turtle import right
 from pyray import *
@@ -74,11 +75,13 @@ async def main():
     space.gravity = 0, 0
     space.collision_bias = 0.001
     space.collision_slop = 0.001
+    space.damping = 0.01
     
 
+    sim_field = field.SimField(space)
     # Create segments around the edge of the screen.
-    field.create_field_hitbox(space)
     chassis = MeccanumChassis(space)
+    chassis.body.position = -0.385, -0.43
 
     set_config_flags(raylib.FLAG_MSAA_4X_HINT)
     init_window(screen_width, screen_height, "Test")
@@ -121,7 +124,7 @@ async def main():
         rl_pop_matrix()
         rl_translatef(viewport_height / 2, -viewport_height / 2, 0)
 
-        field.draw_field()
+        sim_field.draw()
         chassis.draw()
         rl_pop_matrix()
         end_drawing()
