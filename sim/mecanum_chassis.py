@@ -119,6 +119,5 @@ class MeccanumChassis:
         self.tr_wheel.draw()
         self.bl_wheel.draw()
         self.br_wheel.draw()
-        print()
         rl_pop_matrix()
         

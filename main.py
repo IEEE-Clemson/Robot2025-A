@@ -82,7 +82,7 @@ async def main():
     # Create segments around the edge of the screen.
     chassis = MeccanumChassis(space)
     chassis.body.position = -0.385, -0.43
-
+    asyncio.create_task(main_robot_task(chassis))
     set_config_flags(raylib.FLAG_MSAA_4X_HINT)
     init_window(screen_width, screen_height, "Test")
     while not window_should_close():
@@ -101,7 +101,7 @@ async def main():
             steer = 1
         if is_key_down(raylib.KEY_E):
             steer = -1
-        mecanum_drive(chassis, throttle, strafe, steer)
+        #mecanum_drive(chassis, throttle, strafe, steer)
         iters = 3
         for i in range(3):
             chassis.sim_step(dt / iters)
@@ -131,4 +131,15 @@ async def main():
         await asyncio.sleep(dt) # You MUST call this in your main loop
     close_window()
 
+async def main_robot_task(chassis: MeccanumChassis):
+    await asyncio.sleep(2)
+    mecanum_drive(chassis, 0, -1, 0)
+    await asyncio.sleep(1)
+    mecanum_drive(chassis, -1, 0, 0)
+    await asyncio.sleep(4)
+    mecanum_drive(chassis, 0, 1, 0)
+    await asyncio.sleep(4)
+    mecanum_drive(chassis, 0, 0, 0)
+
 asyncio.run(main())
+
