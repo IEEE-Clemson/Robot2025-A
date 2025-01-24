@@ -86,6 +86,6 @@ class DifferentialChassis:
         self.body.apply_force_at_local_point((0, force_right), right_wheel_pos)
 
 
-        self.left_motor.sim_set_velocity(-v_l / self.wheel_radius)
-        self.right_motor.sim_set_velocity(v_r / self.wheel_radius)
+        self.left_motor.sim_set_velocity(  v_l / self.wheel_radius)
+        self.right_motor.sim_set_velocity(-v_r / self.wheel_radius)
         
