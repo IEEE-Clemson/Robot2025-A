@@ -1,6 +1,7 @@
 
 import asyncio
 import platform
+from turtle import right
 from pyray import *
 import pymunk
 import raylib
@@ -8,6 +9,7 @@ import math
 
 from sim import field
 from sim.differential_chassis import DifferentialChassis
+from sim.mecanum_chassis import MeccanumChassis
      
 screen_width = 2000
 screen_height = 2000
@@ -26,10 +28,19 @@ def draw_chassis(c: DifferentialChassis):
 
     rl_pop_matrix()
 
-chassis = DifferentialChassis()
 dt = 0.02
 
-def arcade_drive(rotate, drive):
+def mecanum_drive(chassis: MeccanumChassis, x, y, rx):
+    denominator = max(abs(x) + abs(y) + abs(rx), 1);
+    frontLeftPower = (x + y + rx) / denominator
+    backLeftPower = (x - y + rx) / denominator
+    frontRightPower = (x - y - rx) / denominator
+    backRightPower = (x + y - rx) / denominator
+
+    v = 12
+    chassis.set_motors(frontLeftPower * v, -frontRightPower * v, backLeftPower * v, -backRightPower * v)
+
+def arcade_drive(rotate, drive, chassis: MeccanumChassis):
     global chassis_rigid_body
     """Drives the robot using arcade drive."""
     # variables to determine the quadrants
@@ -67,24 +78,27 @@ async def main():
 
     # Create segments around the edge of the screen.
     field.create_field_hitbox(space)
-
-    space.add(chassis.body, chassis.shape)
+    chassis = MeccanumChassis(space)
 
     set_config_flags(raylib.FLAG_MSAA_4X_HINT)
-    init_window(screen_width, screen_height, "Hello")
+    init_window(screen_width, screen_height, "Test")
     while not window_should_close():
         throttle = 0
+        strafe = 0
         steer = 0
         if is_key_down(raylib.KEY_RIGHT):
-            steer = 1
+            strafe = -1
         if is_key_down(raylib.KEY_LEFT):
-            steer = -1
+            strafe = 1
         if is_key_down(raylib.KEY_UP):
-            throttle = 1
-        if is_key_down(raylib.KEY_DOWN):
             throttle = -1
-        arcade_drive(steer, throttle)
-
+        if is_key_down(raylib.KEY_DOWN):
+            throttle = 1
+        if is_key_down(raylib.KEY_Q):
+            steer = 1
+        if is_key_down(raylib.KEY_E):
+            steer = -1
+        mecanum_drive(chassis, throttle, strafe, steer)
         iters = 3
         for i in range(3):
             chassis.sim_step(dt / iters)
@@ -108,7 +122,7 @@ async def main():
         rl_translatef(viewport_height / 2, -viewport_height / 2, 0)
 
         field.draw_field()
-        draw_chassis(chassis)
+        chassis.draw()
         rl_pop_matrix()
         end_drawing()
         await asyncio.sleep(dt) # You MUST call this in your main loop
