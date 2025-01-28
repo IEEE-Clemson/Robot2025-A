@@ -1,3 +1,4 @@
+from random import random
 from typing import List
 from pyray import *
 import raylib
@@ -5,6 +6,7 @@ import raylib
 import pymunk
 
 CSC_WIDTH = 0.15
+GEO_RADIUS = 0.02
 
 class SimField:
     def __init__(self, space: pymunk.Space):
@@ -19,6 +21,20 @@ class SimField:
         # TODO: Verify positions
         self.add_csc(-0.5, 0.5)
         self.add_csc(0.16, -0.5)
+
+        # Geodynium
+        C = 1/39.3701
+        left = (-48 + 13) * C
+        right = (48 - 31.25 -6.5) * C
+        top = 45/2*C
+        bottom = -45/2*C
+
+        i = 0
+        while i < 6 + 8:
+            x = left + random() * (right - left)
+            y = bottom + random() * (top - bottom)
+            self.add_am(x, y, True)
+            i += 1
 
 
     def draw(self):
@@ -52,6 +68,7 @@ class SimField:
 
         rl_pop_matrix()
         self.draw_cscs()
+        self.draw_am()
 
     def create_field_hitbox(self):
         C = 1 / 39.3701
@@ -100,6 +117,7 @@ class SimField:
         csc_shape = pymunk.Poly.create_box(csc_body, (CSC_WIDTH, CSC_WIDTH))
         csc_shape.mass = csc_body.mass
         csc_shape.body = csc_body
+        csc_shape.friction = 1
         csc_body.moment = csc_shape.moment
         self.space.add(csc_shape, csc_body)
         self.cscs.append(csc_body)
@@ -111,5 +129,22 @@ class SimField:
             rl_rotatef(csc.angle, 0, 0, 1)
             draw_rectangle_v(Vector2(-CSC_WIDTH / 2, -CSC_WIDTH / 2), Vector2(CSC_WIDTH, CSC_WIDTH), LIGHTGRAY)
             rl_pop_matrix()
-            pass
 
+    def add_am(self, x: float, y: float, is_geodynium: bool):
+        am_body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)
+        am_body.position = x, y
+        am_body.mass = 0.05
+        am_shape = pymunk.Circle(am_body, GEO_RADIUS)
+        am_shape.mass = am_body.mass
+        am_shape.body = am_body
+        am_body.moment = am_shape.moment
+        am_shape.friction = 1
+        self.space.add(am_shape, am_body)
+        if is_geodynium:
+            self.geodynium.append(am_body)
+        else:
+            self.nebulite.append(am_body)
+
+    def draw_am(self):
+        for am in self.geodynium + self.nebulite:
+            draw_circle_v(Vector2(*am.position), GEO_RADIUS, PURPLE)

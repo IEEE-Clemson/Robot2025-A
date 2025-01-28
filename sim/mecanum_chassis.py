@@ -80,6 +80,7 @@ class MeccanumChassis:
         self.shape = pymunk.Poly.create_box(self.body, (self.width, self.length))
         self.shape.mass = self.body.mass
         self.shape.body = self.body
+        self.shape.friction = 1
         self.body.moment = self.shape.moment
 
         space.add(self.body, self.shape)
