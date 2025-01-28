@@ -1,0 +1,1 @@
+Hardware abstraction layer to be used on the main controller (Raspberry Pi 5) side
