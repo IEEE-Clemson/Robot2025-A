@@ -1,0 +1,3 @@
+[submodule "comms"]
+	path = comms
+	url = https://github.com/DavidBootle/RoboticsCommLib2025
