@@ -43,13 +43,18 @@ class Encoder:
         )
         self._sm.restart()
         self._sm.active(1)
-        self.set_count(0)
 
     def get_count(self) -> int:
+        count_raw = self._get_count_raw()
+        
+        # convert unsigned to signed
+        if(count_raw & 0x80000000):
+            count_raw = -0x100000000 + count_raw
+
         if self._pin_swapped:
-            return -self._get_count_raw()
+            return -count_raw
         else:
-            return self._get_count_raw()
+            return count_raw
 
     def set_count(self, count: int):
         """Sets the encoder pulse count
