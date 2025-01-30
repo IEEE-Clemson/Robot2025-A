@@ -17,7 +17,7 @@ class PIMotor:
         motor_pin_f: int,
         motor_pin_r: int,
     ):
-        self.cprad = 2400 / (2 * pi)
+        self.cprad = 2800 / (2 * pi)
         "Encoder counts per rotation"
         self.invert_motor: float = False
         "Inverts the direction of the motor. Default direction is positive counter clockwise"
@@ -31,7 +31,7 @@ class PIMotor:
         self.ma_size: int = 10
         "Size of moving average filter for velocity. Accounts for samples over a ma_size * dt rnage"
 
-        self.ff: float = 0
+        self.ff: float = 0.15
         "Percent output per rads. Helps the PID to maintain speed with less integral term [%/rads]"
 
         self.target_velocity = 0
@@ -41,6 +41,7 @@ class PIMotor:
 
         self.__i_acc = 0
         "Accumulator for I term"
+        self.out = 0
 
         self.__prev_count = 0
         self.__ma_buffer = [0.0 for _ in range(self.ma_size)]
@@ -48,9 +49,9 @@ class PIMotor:
 
         self.__encoder = Encoder(sm_id, enc_pin_a, enc_pin_b)
         self.__pwm_f = PWM(Pin(motor_pin_f))
-        self.__pwm_f.freq(2000)
+        self.__pwm_f.freq(10000)
         self.__pwm_r = PWM(Pin(motor_pin_r)) 
-        self.__pwm_r.freq(2000)
+        self.__pwm_r.freq(10000)
 
 
     def update(self, dt: float):
@@ -61,18 +62,19 @@ class PIMotor:
 
         self.__ma_buffer[self.__ma_index] = raw_vel
         self.__ma_index = (self.__ma_index + 1) % self.ma_size
-        self.cur_vel = sum(self.__ma_buffer) / self.ma_size
+        self.cur_vel = (float(sum(self.__ma_buffer)) / self.ma_size) / self.cprad
 
         err = self.target_velocity - self.cur_vel
+        self.err = err
         self.__i_acc += err * dt
-        self.__i_acc = clamp(self.cur_vel, -self.max_i_acc, self.max_i_acc)
+        self.__i_acc = clamp(self.__i_acc, -self.max_i_acc, self.max_i_acc)
 
-        p_term = err * self.p
-        i_term = self.__i_acc * self.i
-        ff_term = self.cur_vel * self.ff
+        self.p_term = err * self.p
+        self.i_term = self.__i_acc * self.i
+        self.ff_term = self.cur_vel * self.ff
 
-        out = clamp(p_term + i_term + ff_term, -1, 1)
-        self.drive_raw(out)
+        self.out = clamp(self.p_term + self.i_term + self.ff_term, -1, 1)
+        self.drive_raw(self.out)
 
     def drive_raw(self, percent_out: float):
         deadband = 0.05
