@@ -34,14 +34,14 @@ class PIMotor:
         self.ff: float = 0.15
         "Percent output per rads. Helps the PID to maintain speed with less integral term [%/rads]"
 
-        self.target_velocity = 0
+        self.target_velocity: float = 0
         "Target angular velocity attempted to be reached by PI loop [rads]"
-        self.cur_vel = 0
+        self.cur_vel: float = 0
         "Current angular velocity of motor, filtered by moving average filter [rads]"
 
-        self.__i_acc = 0
+        self.__i_acc: float = 0
         "Accumulator for I term"
-        self.out = 0
+        self.out: float = 0
 
         self.__prev_count = 0
         self.__ma_buffer = [0.0 for _ in range(self.ma_size)]
@@ -57,6 +57,9 @@ class PIMotor:
     def update(self, dt: float):
         # Update velocity
         cur_count = self.__encoder.get_count()
+        if self.invert_motor:
+            cur_count *= -1
+
         raw_vel = (cur_count - self.__prev_count) / dt
         self.__prev_count = cur_count
 
@@ -77,6 +80,9 @@ class PIMotor:
         self.drive_raw(self.out)
 
     def drive_raw(self, percent_out: float):
+        if self.invert_motor:
+            percent_out *= -1
+
         deadband = 0.05
         out_f = 0
         out_r = 0
