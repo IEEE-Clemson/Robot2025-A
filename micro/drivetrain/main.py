@@ -5,16 +5,25 @@ Kinematics based on https://ecam-eurobot.github.io/Tutorials/mechanical/mecanum.
 from encoder import Encoder
 from pi_motor import PIMotor
 import utime
-import comms
 import sys
 from machine import Timer, Pin
 import config
 
 # Disable autorun because cancelling it through vscode is glitchy
-devel = True
+devel = False
+use_wifi = True
 if devel:
     sys.exit()
 
+
+en1 = Pin(2, Pin.OUT)
+en2 = Pin(3, Pin.OUT)
+en3 = Pin(4, Pin.OUT)
+en4 = Pin(5, Pin.OUT)
+en1.on()
+en2.on()
+en3.on()
+en4.on()
 
 led = Pin("LED") # Heartbeat LED
 motor_fl = PIMotor(
@@ -73,17 +82,24 @@ def comm_error_handler():
     # Can't use PWM since LED is done through wifi chip
     pass
 
-comm = comms.Comm('NAVIGATION', comm_error_handler)
 
+prev_time = utime.time_ns()
+measured_delta = 0
 # Timer for PI
 control_tim = Timer()
-def control_update(timer):
-    dt = 1.0 / config.freq
+def control_update(timer: Timer):
+    global measured_delta, prev_time
+    start = utime.time_ns()
+    dt = (start - prev_time) * 1e-9
+    prev_time = start
+    set_target_vel()
     motor_fl.update(dt)
     motor_fr.update(dt)
     motor_bl.update(dt)
     motor_br.update(dt)
+    end = utime.time_ns()
     update_local_vel()
+    measured_delta = end - start
 
 control_tim.init(freq=config.freq, mode=Timer.PERIODIC, callback=control_update)
 
@@ -101,20 +117,23 @@ def handle_control_request(speeds):
 
 
 # Comm loop
-while True:
-    #TODO: Ask to increase baud rate from 9600bps to 115200bps
-    # If average packet size is ~16 bytes, we can only send 60 packets per second vs 720 packets per second
-    try:
-        packet = comm.receive()
-        if packet is None:
-            continue
-        
-        # TODO: Update packet names
-        if packet.command_str == 'MOVE FORWARD':
-            # This can be 4 16 bit ints in the future, but use floats for simplicity atm
-            handle_control_request(*packet.arguments)
-        
-        if packet.command_str == 'STATUS':
-            comm.send('CONTROL', 'STATUS', True, local_x_vel, local_y_vel, omega)
-    except Exception as e:
-        print("Warning: ", e)
+if not use_wifi:
+    import comms
+    comm = comms.Comm('NAVIGATION', comm_error_handler)
+    while True:
+        #TODO: Ask to increase baud rate from 9600bps to 115200bps
+        # If average packet size is ~16 bytes, we can only send 60 packets per second vs 720 packets per second
+        try:
+            packet = comm.receive()
+            if packet is None:
+                continue
+            
+            # TODO: Update packet names
+            if packet.command_str == 'MOVE FORWARD':
+                # This can be 4 16 bit ints in the future, but use floats for simplicity atm
+                handle_control_request(*packet.arguments)
+            
+            if packet.command_str == 'STATUS':
+                comm.send('CONTROL', 'STATUS', True, local_x_vel, local_y_vel, omega)
+        except Exception as e:
+            print("Warning: ", e)

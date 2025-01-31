@@ -22,16 +22,16 @@ class PIMotor:
         self.invert_motor: float = False
         "Inverts the direction of the motor. Default direction is positive counter clockwise"
 
-        self.p: float = 0
+        self.p: float = 0.32
         "Proportional coefficient for PI controller [%/rads]"
-        self.i: float = 0
+        self.i: float = 0.32
         "Integral coefficient for PI controller [%/rads*s]"
-        self.max_i_acc: float = 0
+        self.max_i_acc: float = 1.0 / self.i
         "Limit to the integral term. Prevents instability [%]"
         self.ma_size: int = 10
         "Size of moving average filter for velocity. Accounts for samples over a ma_size * dt rnage"
 
-        self.ff: float = 0.15
+        self.ff: float = 0.045
         "Percent output per rads. Helps the PID to maintain speed with less integral term [%/rads]"
 
         self.target_velocity: float = 0
@@ -83,9 +83,15 @@ class PIMotor:
         if self.invert_motor:
             percent_out *= -1
 
+
+
         deadband = 0.05
         out_f = 0
         out_r = 0
+        # SAFETY: don't invert motor direction without stopping first
+        if abs(self.cur_vel) > 0.5 and ((self.cur_vel > 0 and percent_out < 0) or (self.cur_vel < 0 and percent_out > 0)):
+            out_f = 0
+            out_r = 0
         if percent_out > deadband:
             out_f = int(65536 * percent_out)
         elif percent_out < -deadband:
