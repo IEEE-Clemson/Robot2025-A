@@ -1,8 +1,9 @@
 from ast import Tuple
+import time
 from typing import List
 import numpy as np
-
 from hal.interfaces import DrivetrainHAL
+from subsystems.math.poseestimator import PoseEstimator
 
 class DrivetrainConfig:
     pass
@@ -20,17 +21,14 @@ class Drivetrain:
 
         self._vx_local = np.array([0, 0])
         self._omega = 0
-
-        self._xs_vision: List[float]
-        self._ys_vision: List[float]
-        self._thetas_vision: List[float]
-        self.confidences: List[float]
-
-        self._error_covariance = np.zeros((3, 3))
+        
+        self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.05, 0.05, 0.05])
 
     def compute_odom(self, dt: float):
         # TODO: Fuse latency compensated vision results with odometry
-        x_hat = self._x_odom + self._vx_local * dt * np.array([np.cos(self._theta_odom), np.sin(self._theta_odom)])
+        x_hat = self._x_odom + self._vx_local * dt * np.array(
+            [np.cos(self._theta_odom), np.sin(self._theta_odom)]
+        )
         theta_hat = self._theta_odom + self._omega * dt
         self._x_odom = x_hat
         self._theta_odom = theta_hat
@@ -42,9 +40,23 @@ class Drivetrain:
         Args:
             dt (float): Time since last update
         """
-        vx, vy, self._omega = self._hal.set_target_wheel_velocities(self._target_vx[0], self._target_vx[1], self._target_omega)
+        vx, vy, self._omega = self._hal.set_target_wheel_velocities(
+            self._target_vx[0], self._target_vx[1], self._target_omega
+        )
         self._vx_local = np.array([vx, vy])
+
+        self.compute_odom(dt)
+        self.pose_estimator.update_with_time(time.time_ns())
 
     def drive_raw_local(self, vx, vy, omega):
         self._target_vx = np.array([vx, vy])
         self._target_omega = omega
+
+    @property
+    def pose_x(self):
+        return self.pose_estimator.x_est
+    
+
+    @property
+    def pose_theta(self):
+        return self.pose_estimator.theta_est
