@@ -8,6 +8,8 @@ import utime
 import sys
 from machine import Timer, Pin
 import config
+import network
+import socket
 
 # Disable autorun because cancelling it through vscode is glitchy
 devel = False
@@ -71,10 +73,10 @@ def set_target_vel():
     a = 1 / config.wheel_radius
     b = (config.wheel_dist_x + config.wheel_dist_y) * target_omega
 
-    motor_fl.target_velocity = a * (vx - vy - b)
-    motor_fr.target_velocity = a * (vx + vy + b)
-    motor_bl.target_velocity = a * (vx + vy - b)
-    motor_br.target_velocity = a * (vx - vy + b)
+    motor_fl.target_velocity = a * (vx + vy - b)
+    motor_fr.target_velocity = a * (vx - vy + b)
+    motor_bl.target_velocity = a * (vx - vy - b)
+    motor_br.target_velocity = a * (vx + vy + b)
 
 
 def comm_error_handler():
@@ -137,3 +139,53 @@ if not use_wifi:
                 comm.send('CONTROL', 'STATUS', True, local_x_vel, local_y_vel, omega)
         except Exception as e:
             print("Warning: ", e)
+else:
+    static_ip = '192.168.1.100'  # Replace with your desired static IP
+    subnet_mask = '255.255.255.0'
+    gateway_ip = '192.168.1.254'
+    dns_server = '8.8.8.8'
+
+    print("Configuring network")
+    ap = network.WLAN(network.AP_IF)
+    ap.deinit()
+    ap.config(ssid="Drivetrain", password="test", security=0)
+    ap.active(True)
+
+    while not ap.active():
+        utime.sleep_ms(10)
+    print("Network activated")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('', 8080))
+    s.listen(5)
+    ap.ifconfig((static_ip, subnet_mask, gateway_ip, dns_server))
+
+
+
+    while True:
+        target_x_vel = 0
+        target_y_vel = 0
+        target_omega = 0
+        conn, addr = s.accept()
+        conn: socket.socket
+        try:
+            
+            print("Connection accepted")
+            while True:
+                try:
+                    line: str = conn.readline().decode('utf-8')
+                    speeds = [float(x) for x in line.split(',')]
+                    target_x_vel = speeds[0]
+                    target_y_vel = speeds[1]
+                    target_omega = speeds[2]
+                    conn.write(f"{local_x_vel:.2f},{local_y_vel:.2f},{omega:.2f}\n")
+                except ValueError:
+                    target_x_vel = 0
+                    target_y_vel = 0
+                    target_omega = 0
+                    conn.write(f"{local_x_vel:.2f},{local_y_vel:.2f},{omega:.2f}\n")
+        except OSError:
+            target_x_vel = 0
+            target_y_vel = 0
+            target_omega = 0
+        
+    

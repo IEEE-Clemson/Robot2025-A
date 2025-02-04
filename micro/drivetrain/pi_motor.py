@@ -22,9 +22,9 @@ class PIMotor:
         self.invert_motor: float = False
         "Inverts the direction of the motor. Default direction is positive counter clockwise"
 
-        self.p: float = 0.32
+        self.p: float = 0.1
         "Proportional coefficient for PI controller [%/rads]"
-        self.i: float = 0.32
+        self.i: float = 0.1
         "Integral coefficient for PI controller [%/rads*s]"
         self.max_i_acc: float = 1.0 / self.i
         "Limit to the integral term. Prevents instability [%]"
