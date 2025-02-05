@@ -73,10 +73,10 @@ def set_target_vel():
     a = 1 / config.wheel_radius
     b = (config.wheel_dist_x + config.wheel_dist_y) * target_omega
 
-    motor_fl.target_velocity = a * (vx + vy - b)
-    motor_fr.target_velocity = a * (vx - vy + b)
-    motor_bl.target_velocity = a * (vx - vy - b)
-    motor_br.target_velocity = a * (vx + vy + b)
+    motor_fl.target_velocity = a * (vx - vy - b)
+    motor_fr.target_velocity = a * (vx + vy + b)
+    motor_bl.target_velocity = a * (vx + vy - b)
+    motor_br.target_velocity = a * (vx - vy + b)
 
 
 def comm_error_handler():
@@ -178,14 +178,18 @@ else:
                     target_y_vel = speeds[1]
                     target_omega = speeds[2]
                     conn.write(f"{local_x_vel:.2f},{local_y_vel:.2f},{omega:.2f}\n")
-                except ValueError:
+                except ValueError as e:
                     target_x_vel = 0
                     target_y_vel = 0
                     target_omega = 0
                     conn.write(f"{local_x_vel:.2f},{local_y_vel:.2f},{omega:.2f}\n")
-        except OSError:
+                    print(e)
+                    
+        except OSError as e:
             target_x_vel = 0
             target_y_vel = 0
             target_omega = 0
+            print(e)
+
         
     

@@ -30,5 +30,5 @@ br_inverted = True
 
 # KINEMATICS CONFIG
 wheel_radius = 0.06
-wheel_dist_x = 0.1
-wheel_dist_y = 0.1
+wheel_dist_x = 0.052
+wheel_dist_y = 0.1175
