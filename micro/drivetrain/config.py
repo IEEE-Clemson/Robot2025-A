@@ -29,6 +29,6 @@ br_pin_r = 12 #11
 br_inverted = True
 
 # KINEMATICS CONFIG
-wheel_radius = 0.06
+wheel_radius = 0.03
 wheel_dist_x = 0.052
 wheel_dist_y = 0.1175
