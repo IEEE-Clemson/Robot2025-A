@@ -1,6 +1,5 @@
-from ast import Tuple
 import time
-from typing import List
+from typing import List, Tuple
 import numpy as np
 from hal.interfaces import DrivetrainHAL
 from subsystems.math.poseestimator import PoseEstimator
@@ -26,9 +25,10 @@ class Drivetrain:
 
     def compute_odom(self, dt: float):
         # TODO: Fuse latency compensated vision results with odometry
-        x_hat = self._x_odom + self._vx_local * dt * np.array(
-            [np.cos(self._theta_odom), np.sin(self._theta_odom)]
-        )
+        x_hat = self._x_odom +  np.array(
+            [[np.cos(self._theta_odom), -np.sin(self._theta_odom)],
+            [np.sin(self._theta_odom), np.cos(self._theta_odom)]]
+        ) @ self._vx_local * dt
         theta_hat = self._theta_odom + self._omega * dt
         self._x_odom = x_hat
         self._theta_odom = theta_hat
@@ -46,12 +46,15 @@ class Drivetrain:
         self._vx_local = np.array([vx, vy])
 
         self.compute_odom(dt)
-        self.pose_estimator.update_with_time(time.time_ns())
+        self.pose_estimator.update_with_time(self._x_odom, self._theta_odom, time.time_ns())
 
     def drive_raw_local(self, vx, vy, omega):
         self._target_vx = np.array([vx, vy])
         self._target_omega = omega
 
+    def get_local_vel(self) -> Tuple[float, float, float]:
+        return self._vx_local[0], self._vx_local[1], self._omega
+        
     @property
     def pose_x(self):
         return self.pose_estimator.x_est
