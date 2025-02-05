@@ -27,7 +27,7 @@ def floorkey_buf(buf: List, t: float) -> int | None:
     # Search for first timestamp in buffer that is lower than current timestamp
     # TODO: replace with binary search
     lower_i = None
-    for i, entry in reversed(enumerate(buf)):
+    for i, entry in reversed(list(enumerate(buf))):
         if entry[0] < t:
             lower_i = i
             break
@@ -39,6 +39,7 @@ def sample_timestamp_buf(
     buf: List[Tuple[float, np.ndarray, float]], t: float
 ) -> Tuple[np.ndarray, float] | None:
     """Samples a buffer that is labeled with timestamps
+    Note: Cannot sample before the first element in the buffer
 
     Args:
         buf (List[Tuple[float, np.ndarray, float]]): Buffer to sample
@@ -61,7 +62,7 @@ def sample_timestamp_buf(
     else:
         return lower_bound[1], lower_bound[2]
 
-    lower_t, lower_x, lower_theta = lower_i
+    lower_t, lower_x, lower_theta = lower_bound
     upper_t, upper_x, upper_theta = upper_bound
 
     interp = (t - lower_t) / (upper_t - lower_t)
@@ -110,7 +111,7 @@ class VisionUpdate:
 
 # Pose estimation code based on wpilib:
 class PoseEstimator:
-    def __init__(self, state_stddev: np.ndarray|List, vision_stddev: np.ndarray|List):
+    def __init__(self, state_stddev: np.ndarray|List = [0.05, 0.05, 0.05], vision_stddev: np.ndarray|List = [0.03, 0.03, 0.03]):
         state_stddev = np.array(state_stddev).reshape(-1, 1)
         vision_stddev = np.array(vision_stddev).reshape(-1, 1)
 
@@ -216,7 +217,7 @@ class PoseEstimator:
         """
         if len(self._odom_buf) == 0:
             return
-        oldest_t = self._odom_buf[0]
+        oldest_t = self._odom_buf[0][0]
 
         if len(self._vision_buf) == 0 or self._vision_buf[0][0] > oldest_t:
             return
@@ -247,7 +248,7 @@ class PoseEstimator:
         odom_sample_x, odom_sample_theta = odom_sample
 
         vision_sample = self.sample_at(t)
-        if odom_sample == None:
+        if vision_sample == None:
             return
         vision_sample_x, vision_sample_theta = vision_sample
 
@@ -268,7 +269,7 @@ class PoseEstimator:
         vision_update = VisionUpdate(
             vision_pos_x, vision_pos_theta, odom_sample_x, odom_sample_theta
         )
-        self._vision_buf.append((t, vision_update))
+        self._vision_buf.append([t, vision_update])
 
         # Use vision result compensated with latest odometry
         self._x_est, self._theta_est = vision_update.compensate(
@@ -294,11 +295,10 @@ class PoseEstimator:
         self._odom_buf.append([t, odom_x, odom_theta])
 
         # Remove out of date samples
-        i = 0
-        for i, sample in self._odom_buf[i]:
+        for i, sample in enumerate(self._odom_buf):
             if sample[0] > t - self.sample_limit:
                 break
-        self._odom_buf = self._odom_buf[:i]
+        self._odom_buf = self._odom_buf[i:]
 
         if len(self._vision_buf) == 0:
             self._x_est = odom_x
