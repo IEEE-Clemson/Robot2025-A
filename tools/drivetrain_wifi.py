@@ -1,5 +1,6 @@
 """ GUI to drive the drivetrain through wifi
 """
+
 import socket
 from threading import Thread
 from time import sleep, time
@@ -7,13 +8,15 @@ from typing import Tuple
 from PySide6.QtWidgets import *
 from PySide6.QtCore import *
 from PySide6.QtGui import *
+import commands2
+from wpilib import RobotState
 
-from hal.drivetrain.drivetrain_wifi import DrivetrainWifi
+from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
 
 # Define the server address and port
-HOST = '192.168.1.100'  # The server's hostname or IP address
-PORT = 8080        # The port used by the server
+HOST = "192.168.1.100"  # The server's hostname or IP address
+PORT = 8080  # The port used by the server
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -32,47 +35,49 @@ target_ref_omega = 0
 slew_rate_xy = 0.5
 slew_rate_theta = 3.0
 
-def update(dt):
-    global cur_ref_x_vel, cur_ref_y_vel, cur_ref_omega
-    if abs(target_ref_x_vel - cur_ref_x_vel) < slew_rate_xy * dt:
-        cur_ref_x_vel = target_ref_x_vel
-    else:
-        cur_ref_x_vel += slew_rate_xy * dt if target_ref_x_vel > cur_ref_x_vel else -slew_rate_xy * dt
+def update():
+    drivetrain.drive_raw_local(target_ref_x_vel, target_ref_y_vel, target_ref_omega)
 
-    if abs(target_ref_y_vel - cur_ref_y_vel) < slew_rate_xy * dt:
-        cur_ref_y_vel = target_ref_y_vel
-    else:
-        cur_ref_y_vel += slew_rate_xy * dt if target_ref_y_vel > cur_ref_y_vel else -slew_rate_xy * dt
 
-    if abs(target_ref_omega - cur_ref_omega) < slew_rate_theta * dt:
-        cur_ref_omega = target_ref_omega
-    else:
-        cur_ref_omega += slew_rate_theta * dt if target_ref_omega > cur_ref_omega else -slew_rate_theta * dt
-
-    t = time()
-    drivetrain.drive_raw_local(cur_ref_x_vel, cur_ref_y_vel, cur_ref_omega)
-    drivetrain.update(dt)
-    print(f"Latency: {(time()-t)*1000:.1f}ms")
+drive_command = commands2.cmd.run(update, drivetrain).ignoringDisable(True)
+print(drive_command)
+drivetrain.setDefaultCommand(drive_command)
 
 def update_thread():
     t = time()
     dt = 0.05
+    commands2.CommandScheduler.getInstance().enable()
+
     while True:
-        update(dt)
-        sleep(0.05)
+        target_t = 0.02 - dt
+        if target_t > 0:
+            sleep(target_t)
+        commands2.CommandScheduler.getInstance().run()
+        print(f"{dt * 1000:.1f}")
         t_new = time()
         dt = t_new - t
         t = t_new
+
 
 class Window(QWidget):
 
     def update_monitors(self):
         cur_x_vel, cur_y_vel, cur_omega = drivetrain.get_local_vel()
-        odom_x, odom_y, odom_theta = drivetrain.pose_x[0], drivetrain.pose_x[1], drivetrain.pose_theta
+        odom_x, odom_y, odom_theta = (
+            drivetrain.pose_x[0],
+            drivetrain.pose_x[1],
+            drivetrain.pose_theta,
+        )
 
-        self.target_vel_values_label.setText(f"X: {target_ref_x_vel:.2F} Y: {target_ref_y_vel:.2F} W: {target_ref_omega:.2F}")
-        self.cur_vel_values_label.setText(f"X: {cur_x_vel:.2F} Y: {cur_y_vel:.2F} W: {cur_omega:.2F}")
-        self.odom_values_label.setText(f"X: {odom_x:.2F} Y: {odom_y:.2F} T: {odom_theta:.2F}")
+        self.target_vel_values_label.setText(
+            f"X: {target_ref_x_vel:.2F} Y: {target_ref_y_vel:.2F} W: {target_ref_omega:.2F}"
+        )
+        self.cur_vel_values_label.setText(
+            f"X: {cur_x_vel:.2F} Y: {cur_y_vel:.2F} W: {cur_omega:.2F}"
+        )
+        self.odom_values_label.setText(
+            f"X: {odom_x:.2F} Y: {odom_y:.2F} T: {odom_theta:.2F}"
+        )
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -98,12 +103,14 @@ class Window(QWidget):
         self.connect(self.update_timer, SIGNAL("timeout()"), self.update_monitors)
         self.update_timer.start(50)
 
-        self.resize(400,400)
+        self.resize(400, 400)
         self.eventFilter = KeyHandler(parent=self)
         self.installEventFilter(self.eventFilter)
 
+
 class KeyHandler(QObject):
     keys = {chr(char): False for char in range(127)}
+
     def eventFilter(self, widget, event):
         if event.type() == QEvent.KeyPress:
             if event.isAutoRepeat():
@@ -122,34 +129,33 @@ class KeyHandler(QObject):
 
     def update_speeds(self):
         global target_ref_x_vel, target_ref_y_vel, target_ref_omega
-        cx = 0.3
-        cy = 0.3
+        cx = 1.5
+        cy = 0.7
         cw = 3.0
-        if self.keys['w']:
+        if self.keys["w"]:
             target_ref_x_vel = cx * 1
-        elif self.keys['s']:
+        elif self.keys["s"]:
             target_ref_x_vel = cx * -1
         else:
             target_ref_x_vel = 0
 
-        if self.keys['a']:
+        if self.keys["a"]:
             target_ref_y_vel = cy * 1
-        elif self.keys['d']:
+        elif self.keys["d"]:
             target_ref_y_vel = cy * -1
         else:
             target_ref_y_vel = 0
 
-        if self.keys['q']:
+        if self.keys["q"]:
             target_ref_omega = cw * 1
-        elif self.keys['e']:
+        elif self.keys["e"]:
             target_ref_omega = cw * -1
         else:
             target_ref_omega = 0
-    
 
 
 # Create timer for updating
-Thread(target = update_thread, daemon=True).start() 
+Thread(target=update_thread, daemon=True).start()
 app = QApplication([])
 window = Window()
 window.show()
