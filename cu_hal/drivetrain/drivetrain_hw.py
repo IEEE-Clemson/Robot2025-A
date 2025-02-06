@@ -1,6 +1,6 @@
 from typing import Tuple
 import comms
-from hal.interfaces import DrivetrainHAL
+from cu_hal.interfaces import DrivetrainHAL
 
 
 class DrivetrainHW(DrivetrainHAL):

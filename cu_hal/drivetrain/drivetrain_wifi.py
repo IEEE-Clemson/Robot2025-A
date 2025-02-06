@@ -1,6 +1,6 @@
 import socket
 from typing import Tuple
-from hal.interfaces import DrivetrainHAL
+from cu_hal.interfaces import DrivetrainHAL
 
 
 def readline(sock):
