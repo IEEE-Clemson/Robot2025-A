@@ -1,5 +1,5 @@
 import time
-from typing import List, Tuple, override
+from typing import List, Tuple
 import numpy as np
 from cu_hal.interfaces import DrivetrainHAL
 from subsystems.math.poseestimator import PoseEstimator
@@ -51,7 +51,7 @@ class Drivetrain(Subsystem):
         self._x_odom = x_hat
         self._theta_odom = theta_hat
 
-    @override
+
     def periodic(self):
         """Updates the subsystem
         Despite dt being a parameter, dt should be as close to a fixed number every time

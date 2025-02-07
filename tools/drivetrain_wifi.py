@@ -129,8 +129,8 @@ class KeyHandler(QObject):
 
     def update_speeds(self):
         global target_ref_x_vel, target_ref_y_vel, target_ref_omega
-        cx = 1.5
-        cy = 0.7
+        cx = 0.5
+        cy = 0.5
         cw = 3.0
         if self.keys["w"]:
             target_ref_x_vel = cx * 1
