@@ -4,6 +4,7 @@ import numpy as np
 from cu_hal.interfaces import DrivetrainHAL
 from subsystems.math.poseestimator import PoseEstimator
 from commands2 import Subsystem
+from wpimath.geometry import Pose2d, Rotation2d
 
 
 class DrivetrainConfig:
@@ -100,3 +101,6 @@ class Drivetrain(Subsystem):
     @property
     def pose_theta(self):
         return self.pose_estimator.theta_est
+    
+    def pose(self) -> Pose2d:
+        return Pose2d(self.pose_x[0], self.pose_x[1], Rotation2d(self.pose_theta))

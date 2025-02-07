@@ -11,6 +11,8 @@ from PySide6.QtGui import *
 import commands2
 from wpilib import RobotState
 
+import control
+from control.drivetrain.move_to_pose import TrapezoidalMove
 from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
 
@@ -40,8 +42,9 @@ def update():
 
 
 drive_command = commands2.cmd.run(update, drivetrain).ignoringDisable(True)
-print(drive_command)
 drivetrain.setDefaultCommand(drive_command)
+
+move_pose_command = TrapezoidalMove(drivetrain, 0.5, 0.5, 0)
 
 def update_thread():
     t = time()
@@ -152,7 +155,8 @@ class KeyHandler(QObject):
             target_ref_omega = cw * -1
         else:
             target_ref_omega = 0
-
+        if self.keys["g"] and not move_pose_command.isScheduled():
+            move_pose_command.schedule()
 
 # Create timer for updating
 Thread(target=update_thread, daemon=True).start()
