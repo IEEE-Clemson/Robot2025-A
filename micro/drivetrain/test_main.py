@@ -10,7 +10,6 @@ throttle = 1
 motor.ff = 0.3
 motor.p = 2.0
 motor.i = 2.0
-motor.max_i_acc = 1 / motor.i
 motor.drive_raw(0)
 utime.sleep(2)
 i = 0
@@ -31,6 +30,6 @@ while True:
     # Estimate for ff in PI controller
     if motor.cur_vel > 0.1:
         print("FF value", throttle / motor.cur_vel)
-        print(motor.p_term, motor.i_term, motor.ff_term, motor.__i_acc, motor.err)
         
     motor.target_velocity = 3
+    

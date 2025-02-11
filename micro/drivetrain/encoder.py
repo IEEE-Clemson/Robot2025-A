@@ -45,6 +45,11 @@ class Encoder:
         self._sm.active(1)
 
     def get_count(self) -> int:
+        """Gets raw encoder pulse count
+
+        Returns:
+            int: Encoder pulse count
+        """
         count_raw = self._get_count_raw()
         
         # convert unsigned to signed
@@ -73,7 +78,8 @@ class Encoder:
         # To read, clear the FIFO and wait for a value
 
         # Clear RX and TX FIFO
-        # Micropython does not have method to clear properly, so read 4x32 values then return the fifth
+        # Micropython does not have method to clear properly,
+        # so read 4x32 values then return the fifth
         for _ in range(4):
             self._sm.get()
 
