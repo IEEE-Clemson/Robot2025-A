@@ -4,14 +4,10 @@
 import socket
 from threading import Thread
 from time import sleep, time
-from typing import Tuple
-from PySide6.QtWidgets import *
-from PySide6.QtCore import *
-from PySide6.QtGui import *
+from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QApplication
+from PySide6.QtCore import QTimer, SIGNAL, QObject, QEvent
 import commands2
-from wpilib import RobotState
 
-import control
 from control.drivetrain.move_to_pose import TrapezoidalMove
 from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
@@ -37,6 +33,7 @@ target_ref_omega = 0
 slew_rate_xy = 0.5
 slew_rate_theta = 3.0
 
+
 def update():
     drivetrain.drive_raw_local(target_ref_x_vel, target_ref_y_vel, target_ref_omega)
 
@@ -45,6 +42,7 @@ drive_command = commands2.cmd.run(update, drivetrain).ignoringDisable(True)
 drivetrain.setDefaultCommand(drive_command)
 
 move_pose_command = TrapezoidalMove(drivetrain, 0.5, 0.5, 0)
+
 
 def update_thread():
     t = time()
@@ -157,6 +155,7 @@ class KeyHandler(QObject):
             target_ref_omega = 0
         if self.keys["g"] and not move_pose_command.isScheduled():
             move_pose_command.schedule()
+
 
 # Create timer for updating
 Thread(target=update_thread, daemon=True).start()
