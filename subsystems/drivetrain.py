@@ -1,10 +1,23 @@
 import time
-from typing import List, Tuple
+from typing import Tuple
 import numpy as np
+
+from commands2 import Subsystem
+from pathplannerlib.config import RobotConfig, ModuleConfig
+from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.system.plant import DCMotor
+from wpimath.geometry import Translation2d
+from wpimath.controller import (
+    HolonomicDriveController,
+    PIDController,
+    ProfiledPIDControllerRadians,
+)
+from wpimath.trajectory import (
+    TrapezoidProfileRadians,
+)
+
 from cu_hal.interfaces import DrivetrainHAL
 from subsystems.math.poseestimator import PoseEstimator
-from commands2 import Subsystem
-from wpimath.geometry import Pose2d, Rotation2d
 
 
 class DrivetrainConfig:
@@ -35,6 +48,34 @@ class Drivetrain(Subsystem):
 
         self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.05, 0.05, 0.05])
 
+        # Config for trajectory controllers
+        rx = 0.052
+        ry = 0.1175
+        # Give the modules absurd amounts of power,
+        # the velocity and acceleration should be limited by the trajectory
+        module_config = (ModuleConfig(0.03, 20.0, 1.2, DCMotor.krakenX60FOC(1), 40, 1),)
+        self.robot_config = RobotConfig(
+            1.0,
+            0.1,
+            module_config,
+            moduleOffsets=[
+                Translation2d(rx, ry),
+                Translation2d(rx, -ry),
+                Translation2d(-rx, ry),
+                Translation2d(-rx, -ry),
+            ],
+        )   
+        self.robot_config.moduleConfig.torqueLoss = 0
+        self.robot_config.isHolonomic = True
+
+        self.trajectory_controller = HolonomicDriveController(
+            PIDController(1, 0.1, 0),
+            PIDController(1, 0.1, 0),
+            ProfiledPIDControllerRadians(
+                4, 0.4, 0, TrapezoidProfileRadians.Constraints(3.14, 6.0)
+            ),
+        )
+
     def compute_odom(self, dt: float):
         # TODO: Fuse latency compensated vision results with odometry
         x_hat = (
@@ -52,30 +93,40 @@ class Drivetrain(Subsystem):
         self._x_odom = x_hat
         self._theta_odom = theta_hat
 
-
     def periodic(self):
         """Updates the subsystem
         Despite dt being a parameter, dt should be as close to a fixed number every time
 
         """
-        dt = 0.02 # WPILIB defaults to 50hz
+        dt = 0.02  # WPILIB defaults to 50hz
         super().periodic()
 
         if abs(self._target_vx[0] - self._cur_ref_x_vel) < self.slew_rate_xy * dt:
             self._cur_ref_x_vel = self._target_vx[0]
         else:
-            self._cur_ref_x_vel += self.slew_rate_xy * dt if self._target_vx[0] > self._cur_ref_x_vel else -self.slew_rate_xy * dt
+            self._cur_ref_x_vel += (
+                self.slew_rate_xy * dt
+                if self._target_vx[0] > self._cur_ref_x_vel
+                else -self.slew_rate_xy * dt
+            )
 
         if abs(self._target_vx[1] - self._cur_ref_y_vel) < self.slew_rate_xy * dt:
             self._cur_ref_y_vel = self._target_vx[1]
         else:
-            self._cur_ref_y_vel += self.slew_rate_xy * dt if self._target_vx[1] > self._cur_ref_y_vel else -self.slew_rate_xy * dt
+            self._cur_ref_y_vel += (
+                self.slew_rate_xy * dt
+                if self._target_vx[1] > self._cur_ref_y_vel
+                else -self.slew_rate_xy * dt
+            )
 
         if abs(self._target_omega - self._cur_ref_omega) < self.slew_rate_theta * dt:
             self._cur_ref_omega = self._target_omega
         else:
-            self._cur_ref_omega += self.slew_rate_theta * dt if self._target_omega > self._cur_ref_omega else -self.slew_rate_theta * dt
-
+            self._cur_ref_omega += (
+                self.slew_rate_theta * dt
+                if self._target_omega > self._cur_ref_omega
+                else -self.slew_rate_theta * dt
+            )
 
         vx, vy, self._omega = self._hal.set_target_wheel_velocities(
             self._cur_ref_x_vel, self._cur_ref_y_vel, self._cur_ref_omega
@@ -101,6 +152,6 @@ class Drivetrain(Subsystem):
     @property
     def pose_theta(self):
         return self.pose_estimator.theta_est
-    
+
     def pose(self) -> Pose2d:
         return Pose2d(self.pose_x[0], self.pose_x[1], Rotation2d(self.pose_theta))
