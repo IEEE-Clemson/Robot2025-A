@@ -1,10 +1,16 @@
-from encoder import Encoder
+""" PI controlled motor using feedback from encoder
+Tested with DF Robot FIT0186
+"""
+
 from math import pi
 from machine import Pin, PWM
 
+from pid_controller import PIDController
+from encoder import Encoder
 
 def clamp(val, min_val, max_val):
     return min(max_val, max(min_val, val))
+
 
 class PIMotor:
     """PI controlled motor using feedback from encoder"""
@@ -17,17 +23,19 @@ class PIMotor:
         motor_pin_f: int,
         motor_pin_r: int,
     ):
+        """Initializes the PI controlled motor
+
+        Args:
+            sm_id (int): ID of the state machine, must be unique
+            enc_pin_a (int): GPIO pin for A channel
+            enc_pin_b (int): GPIO pin for B channel
+            motor_pin_f (int): GPIO pin for forward PWM
+            motor_pin_r (int): GPIO pin for reverse PWM
+        """
         self.cprad = 2800 / (2 * pi)
         "Encoder counts per rotation"
         self.invert_motor: float = False
         "Inverts the direction of the motor. Default direction is positive counter clockwise"
-
-        self.p: float = 0.1
-        "Proportional coefficient for PI controller [%/rads]"
-        self.i: float = 0.1
-        "Integral coefficient for PI controller [%/rads*s]"
-        self.max_i_acc: float = 1.0 / self.i
-        "Limit to the integral term. Prevents instability [%]"
         self.ma_size: int = 10
         "Size of moving average filter for velocity. Accounts for samples over a ma_size * dt rnage"
 
@@ -39,8 +47,6 @@ class PIMotor:
         self.cur_vel: float = 0
         "Current angular velocity of motor, filtered by moving average filter [rads]"
 
-        self.__i_acc: float = 0
-        "Accumulator for I term"
         self.out: float = 0
 
         self.__prev_count = 0
@@ -50,11 +56,20 @@ class PIMotor:
         self.__encoder = Encoder(sm_id, enc_pin_a, enc_pin_b)
         self.__pwm_f = PWM(Pin(motor_pin_f))
         self.__pwm_f.freq(10000)
-        self.__pwm_r = PWM(Pin(motor_pin_r)) 
+        self.__pwm_r = PWM(Pin(motor_pin_r))
         self.__pwm_r.freq(10000)
 
+        p = 0.1
+        i = 0.1
+        self.pid_controller = PIDController(p, i, 0)
 
     def update(self, dt: float):
+        """Updates the control loop for the motor
+
+        Args:
+            dt (float): Time since last update [s]
+        """
+        self.pid_controller.setpoint = self.target_velocity
         # Update velocity
         cur_count = self.__encoder.get_count()
         if self.invert_motor:
@@ -67,29 +82,27 @@ class PIMotor:
         self.__ma_index = (self.__ma_index + 1) % self.ma_size
         self.cur_vel = (float(sum(self.__ma_buffer)) / self.ma_size) / self.cprad
 
-        err = self.target_velocity - self.cur_vel
-        self.err = err
-        self.__i_acc += err * dt
-        self.__i_acc = clamp(self.__i_acc, -self.max_i_acc, self.max_i_acc)
-
-        self.p_term = err * self.p
-        self.i_term = self.__i_acc * self.i
-        self.ff_term = self.cur_vel * self.ff
-
-        self.out = clamp(self.p_term + self.i_term + self.ff_term, -1, 1)
+        self.pid_controller.update(self.cur_vel, dt)
+        self.out = self.pid_controller.output + self.ff * self.target_velocity
         self.drive_raw(self.out)
 
     def drive_raw(self, percent_out: float):
+        """Drives the motor with a raw percent output
+
+        Args:
+            percent_out (float): Percent output to drive the motor [-1, 1]
+        """
         if self.invert_motor:
             percent_out *= -1
-
-
 
         deadband = 0.05
         out_f = 0
         out_r = 0
         # SAFETY: don't invert motor direction without stopping first
-        if abs(self.cur_vel) > 0.5 and ((self.cur_vel > 0 and percent_out < 0) or (self.cur_vel < 0 and percent_out > 0)):
+        if abs(self.cur_vel) > 0.5 and (
+            (self.cur_vel > 0 and percent_out < 0)
+            or (self.cur_vel < 0 and percent_out > 0)
+        ):
             out_f = 0
             out_r = 0
         if percent_out > deadband:
@@ -98,3 +111,23 @@ class PIMotor:
             out_r = int(65536 * -percent_out)
         self.__pwm_f.duty_u16(out_f)
         self.__pwm_r.duty_u16(out_r)
+
+    @property
+    def p(self) -> float:
+        """Proportional constant of the PID controller
+        """
+        return self.pid_controller.p
+
+    @p.setter
+    def p(self, val: float):
+        self.pid_controller.p = val
+
+    @property
+    def i(self) -> float:
+        """Integral constant of the PID controller
+        """
+        return self.pid_controller.i
+
+    @i.setter
+    def i(self, val: float):
+        self.pid_controller.i = val
