@@ -1,25 +1,28 @@
 """ Move the drivetrain in a trapezoidal motion profile in a linear line.
 """
 
+import math
 from time import time
 import commands2
-from wpimath.geometry import Pose2d, Rotation2d, Translation2d
-from wpimath.trajectory import (
-    TrajectoryConfig,
-    TrajectoryGenerator,
-    TrapezoidProfileRadians,
+from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.kinematics import ChassisSpeeds
+
+
+from pathplannerlib.path import (
+    PathPlannerPath,
+    PathConstraints,
+    GoalEndState,
+    IdealStartingState,
+    RotationTarget,
 )
-from wpimath.controller import (
-    HolonomicDriveController,
-    PIDController,
-    ProfiledPIDControllerRadians,
-)
-from wpimath.trajectory.constraint import MecanumDriveKinematicsConstraint
+
 
 from subsystems.drivetrain import Drivetrain
 
 
 class TrapezoidalMove(commands2.Command):
+    """Move the drivetrain to a given pose using a trapezoidal motion profile.
+    """
 
     def __init__(self, drivetrain: Drivetrain, x: float, y: float, theta: float):
         self._x = x
@@ -29,40 +32,56 @@ class TrapezoidalMove(commands2.Command):
         self._trajectory = None
         self._start_time = time()
 
-        self._controller = HolonomicDriveController(
-            PIDController(1, 0, 0),
-            PIDController(1, 0, 0),
-            ProfiledPIDControllerRadians(
-                4, 0.4, 0, TrapezoidProfileRadians.Constraints(3.14, 6.0)
-            ),
-        )
+
         self.addRequirements(drivetrain)
         super().__init__()
 
     def initialize(self):
 
-        sideStart = self._drivetrain.pose()
-        crossScale = Pose2d(self._x, self._y, self._theta)
+        start = self._drivetrain.pose()
 
-        config = TrajectoryConfig(0.2, 0.5)
-        config.setReversed(False)
-
-
-        self._trajectory = TrajectoryGenerator.generateTrajectory(
-            sideStart, [], crossScale, config
+        rot = Rotation2d(math.atan2(self._y - start.y, self._x - start.x))
+        start = Pose2d(start.x, start.y, rot)
+        end = Pose2d(self._x, self._y, rot)
+        waypoints = PathPlannerPath.waypointsFromPoses([start, end])
+        constraints = PathConstraints(
+            0.1, 0.5, 2 * math.pi, 2 * math.pi, unlimited=False
         )
+        path = PathPlannerPath(
+            waypoints,
+            constraints,
+            IdealStartingState(
+                0.0, start.rotation()
+            ),
+            GoalEndState(
+                0.0, Rotation2d(self._theta)
+            ),
+            holonomic_rotations=[
+                RotationTarget(0.1, start.rotation()),
+                RotationTarget(1.0, Rotation2d(self._theta)),
+            ],
+        )
+
+        path.preventFlipping = True
+        self._trajectory = path.generateTrajectory(
+            ChassisSpeeds(0, 0, 0), start.rotation(), self._drivetrain.robot_config
+        )
+        for state in self._trajectory.getStates():
+
+            print(state.timeSeconds)
+            print(state.pose.translation())
 
         self._start_time = time()
 
     def execute(self):
-        print("Here")
         if self._trajectory is None:
-            return False
+            return
         cur_time = time() - self._start_time
         desired_state = self._trajectory.sample(cur_time)
-        speeds = self._controller.calculate(
+        speeds = self._drivetrain.trajectory_controller.calculate(
             self._drivetrain.pose(),
-            desired_state,
+            desired_state.pose,
+            desired_state.linearVelocity,
             desired_state.pose.rotation(),
         )
         self._drivetrain.drive_raw_local(speeds.vx, speeds.vy, speeds.omega)
@@ -73,7 +92,14 @@ class TrapezoidalMove(commands2.Command):
         cur_time = time() - self._start_time
         pose_diff = Pose2d(self._x, self._y, self._theta) - self._drivetrain.pose()
 
-        return cur_time > self._trajectory.totalTime() and pose_diff.x < 0.1 and  pose_diff.y < 0.1 and  pose_diff.rotation().radians() < 0.1
+        xy_tol = 0.01
+        theta_tol = 0.1
+        return (
+            cur_time > self._trajectory.getTotalTimeSeconds()
+            and pose_diff.x < xy_tol
+            and pose_diff.y < xy_tol
+            and pose_diff.rotation().radians() < theta_tol
+        )
 
     def end(self, interrupted):
         self._drivetrain.drive_raw_local(0, 0, 0)
