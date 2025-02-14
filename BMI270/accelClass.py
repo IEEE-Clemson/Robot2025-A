@@ -229,9 +229,9 @@ class Accelerometer:
         currentRegister = self.fetchRegister(ACC_CONF)
         
         if(newFilter == 0x00): # Power-saving mode 
-            currentRegister |= BIT_7 
+            currentRegister |= BIT_6
         elif(newFilter == 0x01): # Performance mode
-            currentRegister &= ~BIT_7 
+            currentRegister &= ~BIT_6 
         else:
             return None 
         
