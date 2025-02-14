@@ -54,15 +54,15 @@ class Gyroscope:
         return None 
     
     
-    def updateCoordinates(self, serialDevice: I2C) -> None:
+    def updateCoordinates(self) -> None:
         """
         Updates the coordinate attributes of the Accelerometer class by reading the MSB and LSB registers.\n
         NOTE:
         This function 'merges' the MSB and LSB of these coordinate registers together using bitwise operations as seen below.\n 
         """
         
-        x_nibble_one = self.readRegister(registerAddress=GYR_X_7_0, serialDevice=serialDevice)
-        x_nibble_two = self.readRegister(registerAddress=GYR_X_15_8, serialDevice=serialDevice)
+        x_nibble_one = self.readRegister(registerAddress=GYR_X_7_0, serialDevice=self.serialDevice)
+        x_nibble_two = self.readRegister(registerAddress=GYR_X_15_8, serialDevice=self.serialDevice)
         
         x_nibble_two <<= 8 
         x_nibble_two |= x_nibble_one 
@@ -70,16 +70,16 @@ class Gyroscope:
         self.xData = x_nibble_two
         
         
-        y_nibble_one = self.readRegister(registerAddress=GYR_Y_7_0, serialDevice=serialDevice)
-        y_nibble_two = self.readRegister(registerAddress=GYR_X_15_8, serialDevice=serialDevice)
+        y_nibble_one = self.readRegister(registerAddress=GYR_Y_7_0, serialDevice=self.serialDevice)
+        y_nibble_two = self.readRegister(registerAddress=GYR_X_15_8, serialDevice=self.serialDevice)
         
         y_nibble_two <<= 8 
         y_nibble_two |= y_nibble_one 
 
         self.yData = y_nibble_two
         
-        z_nibble_one = self.readRegister(registerAddress=GYR_Z_7_0, serialDevice=serialDevice)
-        z_nibble_two = self.readRegister(registerAddress=GYR_Z_15_8, serialDevice=serialDevice)
+        z_nibble_one = self.readRegister(registerAddress=GYR_Z_7_0, serialDevice=self.serialDevice)
+        z_nibble_two = self.readRegister(registerAddress=GYR_Z_15_8, serialDevice=self.serialDevice)
         
         z_nibble_two <<= 8 
         z_nibble_two |= z_nibble_one 
