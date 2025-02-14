@@ -5,13 +5,15 @@ from registerDefinitions import * # type: ignore
 
 
 class Accelerometer:
-    def __init__(self) -> None:
+    def __init__(self, serialDevice: I2C) -> None:
         
         
         self.xData = 0
         self.yData = 0
         self.zData = 0
         
+        self.serialDevice = serialDevice
+
         
         self.readingRange = 0 
         '''
@@ -47,18 +49,18 @@ class Accelerometer:
         return None 
     
     @staticmethod
-    def fetchRegister(registerInt: int, serialDevice: I2C) -> int:
+    def fetchRegister(registerInt: int) -> int:
         """
         Simple utility function that returns the integer value of a read register value on the IMU.
         """
         
-        currentRegister = serialDevice.readfrom_mem(I2C_PRIM_ADDR, registerInt, 1)
+        currentRegister = self.serialDevice.readfrom_mem(I2C_PRIM_ADDR, registerInt, 1)
         currentRegister = int.from_bytes(currentRegister)
         
         return currentRegister
     
 
-    def updateCoordinates(self, serialDevice: I2C) -> None:
+    def updateCoordinates(self) -> None:
         """
         Updates the coordinate attributes of the Accelerometer class by reading the MSB and LSB registers.\n
         NOTE:
@@ -66,8 +68,8 @@ class Accelerometer:
         """
         
     
-        x_nibble_one = self.fetchRegister(registerInt=ACC_X_7_0, serialDevice=serialDevice)
-        x_nibble_two = self.fetchRegister(registerInt=ACC_X_15_8, serialDevice=serialDevice)
+        x_nibble_one = self.fetchRegister(registerInt=ACC_X_7_0)
+        x_nibble_two = self.fetchRegister(registerInt=ACC_X_15_8)
         
         x_nibble_two <<= 8 
         x_nibble_two |= x_nibble_one 
@@ -75,8 +77,8 @@ class Accelerometer:
         self.xData = x_nibble_two
 
         
-        y_nibble_one = self.fetchRegister(registerInt=ACC_Y_7_0, serialDevice=serialDevice)
-        y_nibble_two = self.fetchRegister(registerInt=ACC_Y_15_8, serialDevice=serialDevice)
+        y_nibble_one = self.fetchRegister(registerInt=ACC_Y_7_0)
+        y_nibble_two = self.fetchRegister(registerInt=ACC_Y_15_8)
         
         y_nibble_two <<= 8 
         y_nibble_two |= y_nibble_one 
@@ -85,8 +87,8 @@ class Accelerometer:
         self.yData = y_nibble_two 
         
         
-        z_nibble_one = self.fetchRegister(registerInt=ACC_Z_7_0, serialDevice=serialDevice)
-        z_nibble_two = self.fetchRegister(registerInt=ACC_Z_15_8, serialDevice=serialDevice) 
+        z_nibble_one = self.fetchRegister(registerInt=ACC_Z_7_0)
+        z_nibble_two = self.fetchRegister(registerInt=ACC_Z_15_8) 
        
         z_nibble_two <<= 8
         z_nibble_two |= z_nibble_one
@@ -99,7 +101,7 @@ class Accelerometer:
         return None 
     
    
-    def updateBandwidthParameter(self, serialDevice: I2C, newBandwidth: int) -> None:
+    def updateBandwidthParameter(self, newBandwidth: int) -> None:
         """
         Updates the sampling method / bandwidth paramter for the IMU. Note that for each register, the filter performance mode DOES make a
         difference -- not only in the sampling methods themselves, but also in which registers are allowed to be accessed / configured by software, too.\n
@@ -108,7 +110,7 @@ class Accelerometer:
         
         """
         
-        currentRegister = self.fetchRegister(ACC_CONF, serialDevice)
+        currentRegister = self.fetchRegister(ACC_CONF)
         currentRegister &= 0x8F
 
         
@@ -140,19 +142,19 @@ class Accelerometer:
             return None # If invalid option is chosen, we make no changes to the hardware.
         
         
-        serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_CONF, currentRegister) # If valid entry selected, we write new data.
+        self.serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_CONF, currentRegister) # If valid entry selected, we write new data.
         
         
     
         return None 
     
     
-    def updateODR(self, serialDevice: I2C, newRate: int) -> None:
+    def updateODR(self, newRate: int) -> None:
         """
         Updates the output data rate (ODR) of the accelerometer. The relative Hz next to each command are commented for clarification. 
         """
                 
-        currentRegister = self.fetchRegister(ACC_CONF, serialDevice)
+        currentRegister = self.fetchRegister(ACC_CONF)
         currentRegister &= MSB_MASK_8BIT
         
         if(newRate == 0x0C):
@@ -184,20 +186,20 @@ class Accelerometer:
         
         
         self.outputDataRate = newRate 
-        serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_CONF, currentRegister) # Writes new data if valid entry
+        self.serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_CONF, currentRegister) # Writes new data if valid entry
         
         
         return None 
     
     
-    def updateRange(self, serialDevice: I2C, newRange: int) -> None:
+    def updateRange(self, newRange: int) -> None:
         """
         Updates the reading range of the device to a new value 'n' wherein the range is from -n -> +n. It's relatively
         self-explanatory.
         
         """
         
-        currentRegister = self.fetchRegister(ACC_RANGE, serialDevice)
+        currentRegister = self.fetchRegister(ACC_RANGE)
         currentRegister &= ~FIRST_2_BITS
         
         if(newRange == 0x00):
@@ -212,19 +214,19 @@ class Accelerometer:
             return None 
         
         self.readingRange = newRange 
-        serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_RANGE, currentRegister)
+        self.serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_RANGE, currentRegister)
         
     
         return None 
     
     
-    def updateFilterMode(self, serialDevice: I2C, newFilter: int) -> None:
+    def updateFilterMode(self, newFilter: int) -> None:
         """
         Edits the bandwidth filtering-mode for the accelerometer. As mentioned before, this DOES have some serious affects to the nature of
         the sampling methods for the accelerometer data, so please be careful when using this!
         """
         
-        currentRegister = self.fetchRegister(ACC_CONF, serialDevice)
+        currentRegister = self.fetchRegister(ACC_CONF)
         
         if(newFilter == 0x00): # Power-saving mode 
             currentRegister |= BIT_7 
@@ -234,7 +236,7 @@ class Accelerometer:
             return None 
         
         self.filterPreference = newFilter 
-        serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_RANGE, currentRegister)
+        self.serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_RANGE, currentRegister)
         
         
         return None 
