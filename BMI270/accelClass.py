@@ -48,8 +48,7 @@ class Accelerometer:
                 
         return None 
     
-    @staticmethod
-    def fetchRegister(registerInt: int) -> int:
+    def fetchRegister(self, registerInt: int) -> int:
         """
         Simple utility function that returns the integer value of a read register value on the IMU.
         """
@@ -58,6 +57,8 @@ class Accelerometer:
         currentRegister = int.from_bytes(currentRegister)
         
         return currentRegister
+    
+
     
 
     def updateCoordinates(self) -> None:
