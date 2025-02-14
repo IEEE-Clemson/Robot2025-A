@@ -65,39 +65,29 @@ class Accelerometer:
         This function 'merges' the MSB and LSB of these coordinate registers together using bitwise operations as seen below.\n 
         """
         
-        x_nibble_one = serialDevice.readfrom_mem(I2C_PRIM_ADDR, ACC_X_7_0, 1)
-        x_nibble_one = int.from_bytes(x_nibble_one)
-        
-        x_nibble_two = serialDevice.readfrom_mem(I2C_PRIM_ADDR, ACC_X_15_8, 1)
-        x_nibble_two = int.from_bytes(x_nibble_two)
-        
+    
+        x_nibble_one = self.fetchRegister(registerInt=ACC_X_7_0, serialDevice=serialDevice)
+        x_nibble_two = self.fetchRegister(registerInt=ACC_X_15_8, serialDevice=serialDevice)
         
         x_nibble_two <<= 8 
-        x_nibble_two |= x_nibble_one
-        
+        x_nibble_two |= x_nibble_one 
+
         self.xData = x_nibble_two
 
-
         
-        y_nibble_one = serialDevice.readfrom_mem(I2C_PRIM_ADDR, ACC_Y_7_0, 1)
-        y_nibble_one = int.from_bytes(y_nibble_one)
-        
-        y_nibble_two = serialDevice.readfrom_mem(I2C_PRIM_ADDR, ACC_Y_15_8, 1)
-        y_nibble_two = int.from_bytes(y_nibble_two)
+        y_nibble_one = self.fetchRegister(registerInt=ACC_Y_7_0, serialDevice=serialDevice)
+        y_nibble_two = self.fetchRegister(registerInt=ACC_Y_15_8, serialDevice=serialDevice)
         
         y_nibble_two <<= 8 
-        y_nibble_two |= y_nibble_two
+        y_nibble_two |= y_nibble_one 
         
+  
         self.yData = y_nibble_two 
         
         
-        
-        z_nibble_one = serialDevice.readfrom_mem(I2C_PRIM_ADDR, ACC_Z_7_0, 1)
-        z_nibble_one = int.from_bytes(z_nibble_one)
-        
-        z_nibble_two = serialDevice.readfrom_mem(I2C_PRIM_ADDR, ACC_Z_15_8, 1)
-        z_nibble_two = int.from_bytes(z_nibble_two)
-        
+        z_nibble_one = self.fetchRegister(registerInt=ACC_Z_7_0, serialDevice=serialDevice)
+        z_nibble_two = self.fetchRegister(registerInt=ACC_Z_15_8, serialDevice=serialDevice) 
+       
         z_nibble_two <<= 8
         z_nibble_two |= z_nibble_one
         
@@ -109,7 +99,7 @@ class Accelerometer:
         return None 
     
    
-    def updateBandwithPreference(self, serialDevice: I2C, newBandwidth: int) -> None:
+    def updateBandwidthParameter(self, serialDevice: I2C, newBandwidth: int) -> None:
         """
         Updates the sampling method / bandwidth paramter for the IMU. Note that for each register, the filter performance mode DOES make a
         difference -- not only in the sampling methods themselves, but also in which registers are allowed to be accessed / configured by software, too.\n
@@ -157,7 +147,7 @@ class Accelerometer:
         return None 
     
     
-    def updateOutputDataRate(self, serialDevice: I2C, newRate: int) -> None:
+    def updateODR(self, serialDevice: I2C, newRate: int) -> None:
         """
         Updates the output data rate (ODR) of the accelerometer. The relative Hz next to each command are commented for clarification. 
         """
@@ -193,6 +183,7 @@ class Accelerometer:
             return None # Prevents from writing to reserved registers
         
         
+        self.outputDataRate = newRate 
         serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_CONF, currentRegister) # Writes new data if valid entry
         
         
@@ -220,7 +211,7 @@ class Accelerometer:
         else:
             return None 
         
-        
+        self.readingRange = newRange 
         serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_RANGE, currentRegister)
         
     
@@ -241,6 +232,9 @@ class Accelerometer:
             currentRegister &= ~BIT_7 
         else:
             return None 
-            
+        
+        self.filterPreference = newFilter 
+        serialDevice.writeto_mem(I2C_PRIM_ADDR, ACC_RANGE, currentRegister)
+        
         
         return None 
