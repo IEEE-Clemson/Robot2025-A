@@ -1,206 +1,225 @@
-
-
-
 from machine import Pin, PWM, I2C # type: ignore 
 from registerDefinitions import * # type: ignore 
 
 
+
 class Gyroscope:
-    def __init__(self, serialDevice: I2C) -> None:
-        
-        self.xData = 0
-        self.yData = 0
-        self.zData = 0 
+    def __init__(self, serial_device: I2C) -> None:
         
         
-        self.outputDataRate = 0
-        self.bandwidthPreferences = 0
+        self.x_data = 0
+        self.y_data = 0
+        self.z_data= 0
         
         
-        self.OISRange = 0
-        self.gyroRange = 0
+        self.output_data_rate = 0
+        self.bandwidth_preference = 0
+        self.noise_setting = 0
+        self.filter_setting = 0
         
         
-        self.filterPerformance = 0
-        self.noisePerformance = 0
-        
-        self.serialDevice = serialDevice 
+        self.ois_range = 0
+        self.gyro_range = 0    
         
         
+        self.serial_device = serial_device 
         
         
-        return None 
-    
-    
-    @staticmethod
-    def readRegister(registerAddress: int, serialDevice: I2C) -> int:
-        """
-        Simple utility function that returns the integer value of a read register value on the IMU.
-        """
-        
-        currentRegister = serialDevice.readfrom_mem(I2C_PRIM_ADDR, registerAddress, 1)
-        currentRegister = int.from_bytes(currentRegister)
-        
-        return currentRegister
-    
-    
-    def writeRegister(self, registerAddress: int, valueWriting: int) -> None:
-        """
-        Simple utility function that writes 'valueWriting' value into the address of 'registerAddress' 
-        """
-        
-        self.serialDevice.writeto_mem(I2C_PRIM_ADDR, registerAddress, valueWriting)        
         
         return None 
+    
+    
+    def read_register(self, register_address: int) -> int:
+        """
+        Simple utility function that reads registers. Plan to add more 'safety' features in the future to make this more useful, but 
+        for now it remains a humble wrapper for a a micropython class method.
+        """
+        
+        read_register = self.serial_device.readfrom_mem(I2C_PRIM_ADDR, register_address, 1)
+        
+        read_register = int.from_bytes(read_register)
+    
+        return read_register
+    
+    
+        
     
     
     def updateCoordinates(self) -> None:
         """
-        Updates the coordinate attributes of the Accelerometer class by reading the MSB and LSB registers.\n
-        NOTE:
-        This function 'merges' the MSB and LSB of these coordinate registers together using bitwise operations as seen below.\n 
+        Function that updates the read coordinate data of the gyroscope's positional registers. For each coordinate plane I use bit-wise operations 
+        to 'merge' the upper and lower bytes together. 
         """
         
-        x_nibble_one = self.readRegister(registerAddress=GYR_X_7_0, serialDevice=self.serialDevice)
-        x_nibble_two = self.readRegister(registerAddress=GYR_X_15_8, serialDevice=self.serialDevice)
+        x_nibble_one = self.read_register(register_address=GYR_X_7_0)
+        x_nibble_two = self.read_register(register_address=GYR_X_15_8)
         
-        x_nibble_two <<= 8 
-        x_nibble_two |= x_nibble_one 
+        x_nibble_two = (x_nibble_two << 8) | (x_nibble_one)
         
-        self.xData = x_nibble_two
+        self.x_data = x_nibble_two
         
         
-        y_nibble_one = self.readRegister(registerAddress=GYR_Y_7_0, serialDevice=self.serialDevice)
-        y_nibble_two = self.readRegister(registerAddress=GYR_X_15_8, serialDevice=self.serialDevice)
+        y_nibble_one = self.read_register(register_address=GYR_Y_7_0)
+        y_nibble_two = self.read_register(register_address=GYR_Y_15_8)
         
-        y_nibble_two <<= 8 
-        y_nibble_two |= y_nibble_one 
+        y_nibble_two = (y_nibble_two << 8) | (y_nibble_one)
+        
+        self.y_data = y_nibble_two
+        
+        
+        
+        z_nibble_one = self.read_register(register_address=GYR_Z_7_0)
+        z_nibble_two = self.read_register(register_address=GYR_Z_15_8)
+        
+        z_nibble_two = (z_nibble_two << 8) | (z_nibble_one)
+        
+        self.z_data = z_nibble_two
+        
+        
+    
+        return None 
+    
+    
+    def update_odr(self, new_odr: int) -> None:
+        """
+        Function that changes the output data rate (ODR) of the gyroscope's associated register(s).
+        """
+        
+        old_register = self.read_register(register_address=GYR_CONF)
+        old_register &= MSB_MASK_8BIT
+        
+        all_odr_options = {GYR_ODR_3200, GYR_ODR_1600, GYR_ODR_800, GYR_ODR_400, GYR_ODR_200, GYR_ODR_100, GYR_ODR_50, GYR_ODR_25}
+        
+        if(new_odr in all_odr_options):
+            old_register |= new_odr 
+        else:
+            return None 
+        
+        self.output_data_rate = new_odr 
+        self.serial_device.writeto_mem(addr=I2C_PRIM_ADDR, memaddr=GYR_CONF, buf=old_register, addrsize=8)
+        
+        
+        return None 
+    
+    
+    def update_bandwidth(self, new_band: int) -> None:
+        
+        """
+        Function that updates the 
+        
+        """
+        
+        old_register = self.read_register(register_address=GYR_CONF)
+        old_register &= ~(BIT_5 | BIT_4)
+        
+        
+        if(new_band == GYR_BWP_OSR4):
+            old_register |= (GYR_BWP_OSR4 << 3)
+        elif(new_band == GYR_BWP_OSR2):
+            old_register |= (GYR_BWP_OSR2 << 3)
+        elif(new_band == GYR_BWP_NORMAL):
+            old_register |= (GYR_BWP_NORMAL << 3)
+        else:
+            return None 
+        
+        
+        self.bandwidth_preference = new_band 
+        self.serial_device.writeto_mem(addr=I2C_PRIM_ADDR, memaddr=GYR_CONF, buf=old_register, addrsize=8)
+        
+        
+        return None 
+    
+    
+    def update_noise_preference(self, new_noise: int) -> None:
+        """
+        Function that edits the performance mode of the gryoscope's noise function(s).\n
+        Power Optimized: 0x00\n
+        Performance Optimized: 0x01\n
+        """
+        
+        old_register = self.read_register(register_address=GYR_CONF)
+        old_register &= ~BIT_6
+        
+        if((new_noise >= 0x00) & (new_noise <= 0x01)):
+            old_register |= (new_noise << 6)
+        else:
+            return None 
+        
+        
+        self.noise_setting = new_noise 
+        self.serial_device.writeto_mem(addr=I2C_PRIM_ADDR, memaddr=GYR_CONF, buf=old_register, addrsize=8)
+        
+        
+        return None 
+    
+    
+    def update_filter_preference(self, new_filter: int) -> None:
+        """
+        Function that edits the performance mode of the gyroscope's filter.\n
+        Power Optimized: 0x00\n 
+        Performance Optimized: 0x01\n
+        """
+        
+        old_register = self.read_register(register_address=GYR_CONF)
+        old_register &= ~BIT_7 
+        
+        if((new_filter >= 0x00) & (new_filter <= 0x01)):
+            old_register |= (new_filter << 7)
+        else:
+            return None 
+    
+        self.filter_setting = new_filter 
+        self.serial_device.writeto_mem(addr=I2C_PRIM_ADDR, memaddr=GYR_CONF, buf=old_register, addrsize=8)
+        
+        
+        return None 
+    
+    
+    def update_gyr_range(self, new_range: int) -> None:
+        """
+        Function that updates the gyroscope's angular rate measurement range. 
+        """
 
-        self.yData = y_nibble_two
+        old_register = self.read_register(register_address=GYR_RANGE)
+        old_register &= ~(BIT_2 | BIT_1 | BIT_0) 
         
-        z_nibble_one = self.readRegister(registerAddress=GYR_Z_7_0, serialDevice=self.serialDevice)
-        z_nibble_two = self.readRegister(registerAddress=GYR_Z_15_8, serialDevice=self.serialDevice)
         
-        z_nibble_two <<= 8 
-        z_nibble_two |= z_nibble_one 
+        all_gyr_range_options = {GYR_RANGE_2000, GYR_RANGE_1000, GYR_RANGE_500, GYR_RANGE_250, GYR_RANGE_125}
         
-        self.zData = z_nibble_two 
         
-
-        return None 
-    
-    
-    def updateOutputDataRate(self, newRate: int) -> None:
-        
-        currentRegister = self.readRegister(registerAddress=GYR_CONF, serialDevice=self.serialDevice)
-        currentRegister &= MSB_MASK_8BIT
-        
-        if((newRate >= GYR_ODR_25) & (newRate <= GYR_ODR_3200)):
-            currentRegister |= newRate 
+        if(new_range in all_gyr_range_options):
+            old_register |= new_range
         else:
             return None 
+  
         
-        self.gyroRange = newRate 
-        self.writeRegister(registerAddress=GYR_CONF, valueWriting=currentRegister, serialDevice=self.serialDevice)
-        
-            
-        return None 
+        self.gyro_range = new_range
+        self.serial_device.writeto_mem(addr=I2C_PRIM_ADDR, memaddr=GYR_RANGE, buf=old_register, addrsize=8)
     
-    def updateBandwidthPreferences(self, newBand: int) -> None:
-        
-        currentRegister = self.readRegister(registerAddress=GYR_CONF, serialDevice=self.serialDevice)
-        currentRegister &= ~(BIT_5 | BIT_4)
-        
-        if((newBand >= GYR_BWP_OSR4) & (newBand <= GYR_BWP_NORMAL)):
-            currentRegister |= (newBand << 4)
-        else:
-            return None
-        
-        
-        
-        
-        self.bandwidthPreferences = newBand 
-        self.writeRegister(registerAddress=GYR_CONF, valueWriting=currentRegister, serialDevice=self.serialDevice)
-        
-        
         
         return None 
     
     
     
-    def updateNoisePerformance(self, newSetting: int) -> None:
+    def update_ois_range(self, new_ois: int) -> None:
+        """
+        Function that updates the OIS angular rate measurement range. 
+        """
         
-        currentRegister = self.readRegister(registerAddress=GYR_CONF, serialDevice=self.serialDevice)
-        currentRegister &= ~BIT_6 
+        old_register = self.read_register(register_address=GYR_RANGE)
+        old_register &= ~BIT_4 
         
-        if((newSetting >= 0X00) & (newSetting <= 0x01)):
-            currentRegister |= (newSetting << 6)
+        if((new_ois >= 0x00) & (new_ois <= 0x01)):
+            old_register |= (new_ois << 3)
         else:
             return None 
         
         
-        self.noisePerformance = newSetting
-        self.writeRegister(registerAddress=GYR_CONF, valueWriting=currentRegister, serialDevice=self.serialDevice)
-        
-        
-        return None 
-    
-    def updateFilterPerformance(self,  newSetting: int) -> None:
-        
-        currentRegister = self.readRegister(registerAddress=GYR_CONF, serialDevice=self.serialDevice)
-        currentRegister &= ~BIT_7 
-        
-        if((newSetting >= 0x00) & (newSetting <+ 0x01)):
-            currentRegister |= (newSetting << 7)
-        else:
-            return None 
-        
-        
-        self.filterPerformance = newSetting
-        self.writeRegister(registerAddress=GYR_CONF, valueWriting=currentRegister, serialDevice=self.serialDevice)
+        self.ois_range = new_ois 
+        self.serial_device.writeto_mem(addr=I2C_PRIM_ADDR, memaddr=GYR_RANGE, buf=old_register, addrsize=8)
         
         
         return None 
     
     
     
-    def updateGyroRange(self,  newRange: int) -> None:
-        
-        currentRegister = self.readRegister(registerAddress=GYR_RANGE, serialDevice=self.serialDevice)
-        currentRegister &= ~FIRST_3_BITS
-        
-        if((newRange >= GYR_RANGE_2000) & (newRange <= GYR_RANGE_125)):
-            currentRegister |= newRange 
-        else:
-            return None 
-        
-        
-        
-        self.gyroRange = newRange 
-        self.writeRegister(registerAddress=GYR_RANGE, valueWriting=currentRegister, serialDevice=self.serialDevice)    
-            
-        
-        
-        return None 
-    
-    
-    def updateOISRange(self, newRange: int ) -> None:
-        
-        currentRegister = self.readRegister(registerAddress=GYR_RANGE, serialDevice=self.serialDevice)
-        
-        if(newRange == 0X00):
-            currentRegister &= ~BIT_3 
-        elif(newRange == 0x01):
-            currentRegister |= BIT_3
-        else:
-            return None 
-        
-        
-        
-        self.OISRange = currentRegister
-        self.writeRegister(registerAddress=GYR_RANGE, valueWriting=currentRegister, serialDevice=self.serialDevice)
-
-            
-        
-        
-        return None 
