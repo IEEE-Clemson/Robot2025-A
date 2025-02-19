@@ -49,7 +49,6 @@ class PIMotor:
 
         self.out: float = 0
 
-        self.__prev_count = 0
         self.__ma_buffer = [0.0 for _ in range(self.ma_size)]
         self.__ma_index = 0
 
@@ -59,6 +58,8 @@ class PIMotor:
         self.__pwm_r = PWM(Pin(motor_pin_r))
         self.__pwm_r.freq(10000)
 
+        self.__prev_count = self.__encoder.get_count()
+        self.use_pi = True
         p = 0.1
         i = 0.1
         self.pid_controller = PIDController(p, i, 0)
@@ -84,7 +85,8 @@ class PIMotor:
 
         self.pid_controller.update(self.cur_vel, dt)
         self.out = self.pid_controller.output + self.ff * self.target_velocity
-        self.drive_raw(self.out)
+        if self.use_pi:
+            self.drive_raw(self.out)
 
     def drive_raw(self, percent_out: float):
         """Drives the motor with a raw percent output

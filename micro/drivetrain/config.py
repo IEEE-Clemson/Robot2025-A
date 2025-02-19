@@ -53,7 +53,7 @@ BR_INVERTED = True
 # KINEMATICS CONFIG
 WHEEL_RADIUS = 0.03
 "Radius of the wheel in meters"
-WHEEL_DIST_X = 0.052
+WHEEL_DIST_X = 0.06
 "Distance from center to wheel in x direction in meters"
-WHEEL_DIST_Y = 0.1175
+WHEEL_DIST_Y = 0.1075
 "Distance from center to wheel in y direction in meters"
