@@ -317,18 +317,25 @@ class BMI270:
     
     def get_acc_data(self):
         raw_acc_data = self.get_raw_acc_data()
+        for i in range(3):
+            if (raw_acc_data[i] > 32767):
+                raw_acc_data[i] -= 65536
         acceleration = [x / 32768 * self.acc_range for x in raw_acc_data]
 
         return acceleration
 
     def get_gyr_data(self):
         raw_gyr_data = self.get_raw_gyr_data()
+        for i in range(3):
+            if (raw_gyr_data[i] > 32767):
+                raw_gyr_data[i] -= 65536
         angular_velocity = [DEG2RAD * x / 32768 * self.gyr_range for x in raw_gyr_data]
 
         return angular_velocity
     
     def get_temp_data(self) -> float:
         raw_data = self.get_raw_temp_data()
+        for i in range(3):
+            if (raw_data[i] > 32767):
+                raw_data[i] -= 65536
         temp_celsius = [x * 0.001952594 + 23.0 for x in raw_data]
-        
-        return temp_celsius
