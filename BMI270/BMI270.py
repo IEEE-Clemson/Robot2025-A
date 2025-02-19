@@ -1,5 +1,6 @@
 from machine import Pin, PWM, I2C
 from registerDefinitions import *
+from config_file import bmi270_config_file
 from time import sleep
 
 
@@ -8,29 +9,83 @@ from time import sleep
 class BMI270:
     def __init__(self, serialDevice: I2C) -> None:
         self.i2c = serialDevice
+        self.acc_range        = 2 * GRAVITY
+        self.acc_odr          = 100
+        self.gyr_range        = 1000
+        self.gyr_odr          = 200
+
+        self.load_config_file()
         self.set_acc_range(ACC_RANGE_2G)
         self.set_acc_odr(ACC_ODR_100)
         self.set_gyr_range(GYR_RANGE_1000)
         self.set_gyr_odr(GYR_ODR_200)
-    
-    def read_register(self, address: int) -> int:
+        self.set_acc_bwp(ACC_BWP_NORMAL)
+        self.set_gyr_bwp(GYR_BWP_NORMAL)
+        self.set_mode("performance")
+        self.enable_acc()
+        self.enable_gyr()
 
+    
+    # Only needed on initalization
+    def load_config_file(self) -> None:
+        if (self.read_register(INTERNAL_STATUS) == 0x01):
+            return
+        else:
+            print(hex(self.address), " --> Initializing...")
+            self.write_register(PWR_CONF, 0x00)
+            sleep(0.00045)
+            self.write_register(INIT_CTRL, 0x00)
+            for i in range(256):
+                self.write_register(INIT_ADDR_0, 0x00)
+                self.write_register(INIT_ADDR_1, i)
+                self.write_i2c_block_data(I2C_PRIM_ADDR, INIT_DATA, bmi270_config_file[i*32:(i+1)*32])
+                sleep(0.000020)
+            self.write_register(INIT_CTRL, 0x01)
+            sleep(0.02)
+
+
+
+    # Only needed for load_config_file
+    def write_i2c_block_data(self, addr, register, data):
+        """ Write multiple bytes of data to register of device at addr"""
+        if not isinstance(data, bytes):
+            if not isinstance(data, list):
+                data = [data]
+            data = bytes(data)
+
+        register_size = 8
+        if isinstance(register, list):
+            temp = 0
+            register_size = 0
+            for r in bytes(register):
+                temp <<= 8
+                temp |= r
+                register_size += 8
+            register = temp
+
+        return self.i2c.writeto_mem(addr, register, data, addrsize=register_size)
+    
+    
+
+    def read_register(self, address: int) -> int:
         currentRegister = self.i2c.readfrom_mem(I2C_PRIM_ADDR, address, 1)
         currentRegister = int.from_bytes(currentRegister)
         
         return currentRegister
     
     def write_register(self, address: int, value: int) -> None:
+        buf = bytearray(int.to_bytes(value, 1, 'little'))
+        self.i2c.writeto_mem(I2C_PRIM_ADDR, address, buf)
 
-        self.i2c.writeto_mem(I2C_PRIM_ADDR, address, value)        
-        
-        return None
+
     
     def __unsignedToSigned__(self, n, byte_count) -> int:
         return int.from_bytes(n.to_bytes(byte_count, 'little', signed=False), 'little', signed=True)
 
     def __signedToUnsigned__(self, n, byte_count) -> int:
         return int.from_bytes(n.to_bytes(byte_count, 'little', signed=True), 'little', signed=False)
+
+
 
     def set_mode(self, mode="performance") -> None:
         if (mode == "low_power"):
@@ -262,18 +317,18 @@ class BMI270:
     
     def get_acc_data(self):
         raw_acc_data = self.get_raw_acc_data()
-        acceleration = raw_acc_data / 32768 * self.acc_range
+        acceleration = [x / 32768 * self.acc_range for x in raw_acc_data]
 
         return acceleration
 
     def get_gyr_data(self):
         raw_gyr_data = self.get_raw_gyr_data()
-        angular_velocity = DEG2RAD * raw_gyr_data / 32768 * self.gyr_range
+        angular_velocity = [DEG2RAD * x / 32768 * self.gyr_range for x in raw_gyr_data]
 
         return angular_velocity
     
     def get_temp_data(self) -> float:
         raw_data = self.get_raw_temp_data()
-        temp_celsius = raw_data * 0.001952594 + 23.0
+        temp_celsius = [x * 0.001952594 + 23.0 for x in raw_data]
         
         return temp_celsius
