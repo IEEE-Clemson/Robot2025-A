@@ -41,7 +41,12 @@ def update():
 drive_command = commands2.cmd.run(update, drivetrain).ignoringDisable(True)
 drivetrain.setDefaultCommand(drive_command)
 
-move_pose_command = TrapezoidalMove(drivetrain, 0.5, 0.5, 0)
+move_pose_command = TrapezoidalMove(drivetrain, 0.794, 0.58, 0) \
+                .andThen(TrapezoidalMove(drivetrain, 1.9, 0.58, 0)) \
+                .andThen(TrapezoidalMove(drivetrain, 0.7, 0.58, 0)) \
+                .andThen(TrapezoidalMove(drivetrain, 0.7, 1.2,  0)) \
+                .andThen(commands2.InstantCommand(lambda: drivetrain.reset_odom(0.7, 1.0, 0), drivetrain).ignoringDisable(True)) \
+                .andThen(TrapezoidalMove(drivetrain, 0.3, 1.0, 0)) \
 
 
 def update_thread():
@@ -54,7 +59,6 @@ def update_thread():
         if target_t > 0:
             sleep(target_t)
         commands2.CommandScheduler.getInstance().run()
-        print(f"{dt * 1000:.1f}")
         t_new = time()
         dt = t_new - t
         t = t_new
