@@ -10,15 +10,15 @@ from .vision_config import VisionConfig
 
 TAG_HEIGHT = 0.05
 id_to_pose = {
-    0: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, -pi / 4)), # West wall
-    1: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, -pi / 4)), # West wall
-    2: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, -pi / 4)), # West wall
-    3: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, -pi / 4)), # West wall
-    4: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, -pi / 4)), # West wall
+    0: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, pi )), # West wall
+    1: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, pi )), # West wall
+    2: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, pi )), # West wall
+    3: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, pi )), # West wall
+    4: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, pi )), # West wall
 
     5: Pose3d(0.812, 1.143, TAG_HEIGHT, Rotation3d(0, 0, pi / 2)), # North wall
-    6: Pose3d(1.050, 0, TAG_HEIGHT, Rotation3d(0, 0, 0)), # South wall
-    7: Pose3d(2.354, 0.572, TAG_HEIGHT, Rotation3d(0, 0, pi / 4)), # East wall
+    6: Pose3d(1.050, 0, TAG_HEIGHT, Rotation3d(0, 0, pi/2)), # South wall
+    7: Pose3d(2.354, 0.572, TAG_HEIGHT, Rotation3d(0, 0, -pi)), # East wall
 }
 
 class Vision(Subsystem):
@@ -50,14 +50,12 @@ class Vision(Subsystem):
                 .transformBy(Transform3d.fromMatrix(tag.pose).inverse())\
                 .transformBy(self._config.camera_pose.inverse())
             # TODO: Reproject onto XY plane
-            print(robot_in_field)
             pose2d = Pose2d(
                 robot_in_field.translation().x,
                 robot_in_field.translation().y,
                 robot_in_field.rotation().Z()
             )
             self.cur_pose2d.append(pose2d)
-            print(tag.id)
             #print(robot_in_field.translation())
             
             if self.add_pose2d_callback is not None:
