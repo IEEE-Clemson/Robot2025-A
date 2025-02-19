@@ -4,9 +4,17 @@
 import math
 from time import time
 import commands2
+from pathplannerlib.commands import PIDConstants
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds
-
+from wpimath.controller import (
+    HolonomicDriveController,
+    PIDController,
+    ProfiledPIDControllerRadians,
+)
+from wpimath.trajectory import (
+    TrapezoidProfileRadians,
+)
 
 from pathplannerlib.path import (
     PathPlannerPath,
@@ -16,8 +24,10 @@ from pathplannerlib.path import (
     RotationTarget,
 )
 
+from pathplannerlib.controller import PPHolonomicDriveController
 
 from subsystems.drivetrain import Drivetrain
+
 
 
 class TrapezoidalMove(commands2.Command):
@@ -32,6 +42,10 @@ class TrapezoidalMove(commands2.Command):
         self._trajectory = None
         self._start_time = time()
 
+        self._trajectory_controller = PPHolonomicDriveController(
+            PIDConstants(0.5, 1.0, 0, 10),
+            PIDConstants(4, 0.7, 0, 10),
+        )
 
         self.addRequirements(drivetrain)
         super().__init__()
@@ -45,31 +59,23 @@ class TrapezoidalMove(commands2.Command):
         end = Pose2d(self._x, self._y, rot)
         waypoints = PathPlannerPath.waypointsFromPoses([start, end])
         constraints = PathConstraints(
-            0.1, 0.5, 2 * math.pi, 2 * math.pi, unlimited=False
+            0.1, 0.1, 2 * math.pi, 2 * math.pi, unlimited=False
         )
         path = PathPlannerPath(
             waypoints,
             constraints,
             IdealStartingState(
-                0.0, start.rotation()
+                0.0, self._drivetrain.pose().rotation()
             ),
             GoalEndState(
                 0.0, Rotation2d(self._theta)
             ),
-            holonomic_rotations=[
-                RotationTarget(0.1, start.rotation()),
-                RotationTarget(1.0, Rotation2d(self._theta)),
-            ],
         )
 
         path.preventFlipping = True
         self._trajectory = path.generateTrajectory(
-            ChassisSpeeds(0, 0, 0), start.rotation(), self._drivetrain.robot_config
+            ChassisSpeeds(0, 0, 0), self._drivetrain.pose().rotation(), self._drivetrain.robot_config
         )
-        for state in self._trajectory.getStates():
-
-            print(state.timeSeconds)
-            print(state.pose.translation())
 
         self._start_time = time()
 
@@ -78,11 +84,9 @@ class TrapezoidalMove(commands2.Command):
             return
         cur_time = time() - self._start_time
         desired_state = self._trajectory.sample(cur_time)
-        speeds = self._drivetrain.trajectory_controller.calculate(
+        speeds = self._trajectory_controller.calculateRobotRelativeSpeeds(
             self._drivetrain.pose(),
-            desired_state.pose,
-            desired_state.linearVelocity,
-            desired_state.pose.rotation(),
+            desired_state,
         )
         self._drivetrain.drive_raw_local(speeds.vx, speeds.vy, speeds.omega)
 
@@ -94,11 +98,13 @@ class TrapezoidalMove(commands2.Command):
 
         xy_tol = 0.01
         theta_tol = 0.1
+        vx, vy, omega = self._drivetrain.get_local_vel()
         return (
             cur_time > self._trajectory.getTotalTimeSeconds()
             and pose_diff.x < xy_tol
             and pose_diff.y < xy_tol
             and pose_diff.rotation().radians() < theta_tol
+            and math.hypot(vx, vy) < 0.2
         )
 
     def end(self, interrupted):
