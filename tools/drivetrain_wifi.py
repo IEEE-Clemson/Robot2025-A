@@ -1,6 +1,7 @@
 """ GUI to drive the drivetrain through wifi
 """
 
+from math import pi
 import socket
 from threading import Thread
 from time import sleep, time
@@ -10,9 +11,12 @@ import commands2
 
 from control.drivetrain.move_to_pose import TrapezoidalMove
 from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
+from cu_hal.drivetrain.drivetrain_sim import DrivetrainSim
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
+from subsystems.vision import Vision, VisionConfig
 
 # Define the server address and port
+SHOULD_USE_VISION = True
 HOST = "192.168.1.100"  # The server's hostname or IP address
 PORT = 8080  # The port used by the server
 
@@ -21,6 +25,13 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect((HOST, PORT))
 
 drivetrain = Drivetrain(DrivetrainConfig(), DrivetrainWifi(sock))
+if SHOULD_USE_VISION:
+    vision_config = VisionConfig()
+    vision_config.should_display = True
+    vision_config.dev_index = 4
+    vision = Vision(vision_config)
+    vision.add_pose2d_callback = drivetrain.pose_estimator.add_vision_pose
+#drivetrain = Drivetrain(DrivetrainConfig(), DrivetrainSim())
 
 cur_ref_x_vel = 0
 cur_ref_y_vel = 0
@@ -41,7 +52,7 @@ def update():
 drive_command = commands2.cmd.run(update, drivetrain).ignoringDisable(True)
 drivetrain.setDefaultCommand(drive_command)
 
-move_pose_command = TrapezoidalMove(drivetrain, 0.794, 0.58, 0) \
+move_pose_command = TrapezoidalMove(drivetrain, 0.794, 0.58, -pi / 2) \
                 .andThen(TrapezoidalMove(drivetrain, 1.9, 0.58, 0)) \
                 .andThen(TrapezoidalMove(drivetrain, 0.7, 0.58, 0)) \
                 .andThen(TrapezoidalMove(drivetrain, 0.7, 1.2,  0)) \

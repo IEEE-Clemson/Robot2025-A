@@ -7,6 +7,7 @@ from math import pi, sqrt
 from typing import List, Tuple
 import numpy as np
 from .pose import pose_add, pose_exp, pose_log, pose_sub
+from wpimath.geometry import Pose2d
 
 
 def clamp(x, x_min, x_max):
@@ -239,7 +240,6 @@ class PoseEstimator:
         """
         if len(self._odom_buf) == 0 or self._odom_buf[0][0] - self.sample_limit > t:
             return
-
         self._remove_stale_vision_samples()
 
         odom_sample = sample_timestamp_buf(self._odom_buf, t)
@@ -306,3 +306,6 @@ class PoseEstimator:
         else:
             vision_update = self._vision_buf[-1][1]
             self._x_est, self._theta_est = vision_update.compensate(odom_x, odom_theta)
+
+    def add_vision_pose(self, pose: Pose2d, t: float):
+        self.add_vision_measurements(pose.translation().toVector(), pose.rotation().radians(), t)

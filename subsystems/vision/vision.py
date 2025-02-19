@@ -59,4 +59,4 @@ class Vision(Subsystem):
             #print(robot_in_field.translation())
             
             if self.add_pose2d_callback is not None:
-                self.add_pose2d_callback(t, pose2d)
+                self.add_pose2d_callback(pose2d, t)

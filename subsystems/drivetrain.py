@@ -1,3 +1,4 @@
+import math
 import time
 from typing import Tuple
 import numpy as np
@@ -30,8 +31,8 @@ class Drivetrain(Subsystem):
         self._config = config
         self._hal = hal
 
-        self._x_odom = np.array([0, 0])
-        self._theta_odom = 0
+        self._x_odom = np.array([0.794, 5.5*0.0254])
+        self._theta_odom = 0 #math.pi/2
 
         self._target_vx = np.array([0, 0])
         self._target_omega = 0
@@ -43,7 +44,7 @@ class Drivetrain(Subsystem):
         self._cur_ref_y_vel = 0
         self._cur_ref_omega = 0
 
-        self.slew_rate_xy = 0.5
+        self.slew_rate_xy = 0.75
         self.slew_rate_theta = 3.0
 
         self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.05, 0.05, 0.05])
@@ -53,7 +54,7 @@ class Drivetrain(Subsystem):
         ry = 0.1175
         # Give the modules absurd amounts of power,
         # the velocity and acceleration should be limited by the trajectory
-        module_config = (ModuleConfig(0.03, 20.0, 1.2, DCMotor.krakenX60FOC(1), 40, 1),)
+        module_config = ModuleConfig(0.03, 20.0, 1.2, DCMotor.krakenX60FOC(1), 40, 1)
         self.robot_config = RobotConfig(
             1.0,
             0.1,
@@ -69,12 +70,18 @@ class Drivetrain(Subsystem):
         self.robot_config.isHolonomic = True
 
         self.trajectory_controller = HolonomicDriveController(
-            PIDController(1, 0.1, 0),
-            PIDController(1, 0.1, 0),
+            PIDController(1, 0.5, 0),
+            PIDController(1, 0.5, 0),
             ProfiledPIDControllerRadians(
-                4, 0.4, 0, TrapezoidProfileRadians.Constraints(3.14, 6.0)
+                4, 0.7, 0, TrapezoidProfileRadians.Constraints(3.14, 6.0)
             ),
         )
+        self.prev_time = time.time()
+
+    def reset_odom(self, x: float, y: float, theta: float):
+        self._x_odom = np.array([x, y])
+        self._theta_odom = theta
+        self.pose_estimator.reset_pose(self._x_odom, self._theta_odom)
 
     def compute_odom(self, dt: float):
         # TODO: Fuse latency compensated vision results with odometry
@@ -98,7 +105,9 @@ class Drivetrain(Subsystem):
         Despite dt being a parameter, dt should be as close to a fixed number every time
 
         """
-        dt = 0.02  # WPILIB defaults to 50hz
+        cur_time = time.time()
+        dt = cur_time - self.prev_time  # WPILIB defaults to 50hz
+        self.prev_time = cur_time
         super().periodic()
 
         if abs(self._target_vx[0] - self._cur_ref_x_vel) < self.slew_rate_xy * dt:
@@ -135,7 +144,7 @@ class Drivetrain(Subsystem):
 
         self.compute_odom(dt)
         self.pose_estimator.update_with_time(
-            self._x_odom, self._theta_odom, time.time_ns()
+            self._x_odom, self._theta_odom, time.time()
         )
 
     def drive_raw_local(self, vx, vy, omega):
