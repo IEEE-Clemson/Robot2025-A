@@ -179,89 +179,48 @@ class BMI270:
             self.write_register(ACC_RANGE, ACC_RANGE_16G)
             self.acc_range = 16 * GRAVITY
 
-    def set_gyr_range(self, range=GYR_RANGE_2000) -> None:
-        if (range == GYR_RANGE_2000):
-            self.write_register(GYR_RANGE, GYR_RANGE_2000)
-            self.gyr_range = 2000
-        elif (range == GYR_RANGE_1000):
-            self.write_register(GYR_RANGE, GYR_RANGE_1000)
-            self.gyr_range = 1000
-        elif (range == GYR_RANGE_500):
+    def set_gyr_range(self, range:int=GYR_RANGE_2000) -> None:
+        
+        gyr_range_set = {GYR_RANGE_2000, GYR_RANGE_1000, GYR_RANGE_500, GYR_RANGE_250, GYR_RANGE_125}
+        
+        if (range in gyr_range_set):
             self.write_register(GYR_RANGE, GYR_RANGE_500)
-            self.gyr_range = 500
-        elif (range == GYR_RANGE_250):
-            self.write_register(GYR_RANGE, GYR_RANGE_250)
-            self.gyr_range = 250
-        elif (range == GYR_RANGE_125):
-            self.write_register(GYR_RANGE, GYR_RANGE_125)
-            self.gyr_range = 125
+            self.gyr_range = range
+        
+        
+        return None 
+            
+    def set_acc_odr(self, odr:int=ACC_ODR_200) -> None:
+        
+        all_odr_set = {ACC_ODR_1600, ACC_ODR_800, ACC_ODR_400, ACC_ODR_200, ACC_ODR_100, ACC_ODR_50, ACC_ODR_25}
+        
+        if(odr in all_odr_set):
+            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & MSB_MASK_8BIT) | odr))
+            self.acc_odr = odr 
 
-    def set_acc_odr(self, odr=ACC_ODR_200) -> None:
-        if (odr == ACC_ODR_1600):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & MSB_MASK_8BIT) | ACC_ODR_1600))
-            self.acc_odr = 1600
-        elif (odr == ACC_ODR_800):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & MSB_MASK_8BIT) | ACC_ODR_800))
-            self.acc_odr = 800
-        elif (odr == ACC_ODR_400):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & MSB_MASK_8BIT) | ACC_ODR_400))
-            self.acc_odr = 400
-        elif (odr == ACC_ODR_200):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & MSB_MASK_8BIT) | ACC_ODR_200))
-            self.acc_odr = 200
-        elif (odr == ACC_ODR_100):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & MSB_MASK_8BIT) | ACC_ODR_100))
-            self.acc_odr = 100
-        elif (odr == ACC_ODR_50):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & MSB_MASK_8BIT) | ACC_ODR_50))
-            self.acc_odr = 50
-        elif (odr == ACC_ODR_25):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & MSB_MASK_8BIT) | ACC_ODR_25))
-            self.acc_odr = 25
+        
+        return None 
 
-    def set_gyr_odr(self, odr=GYR_ODR_200) -> None:
-        if (odr == GYR_ODR_3200):
-            self.write_register(GYR_CONF, ((self.read_register(GYR_CONF) & MSB_MASK_8BIT) | GYR_ODR_3200))
-            self.gyr_odr = 3200
-        elif (odr == GYR_ODR_1600):
-            self.write_register(GYR_CONF, ((self.read_register(GYR_CONF) & MSB_MASK_8BIT) | GYR_ODR_1600))
-            self.gyr_odr = 1600
-        elif (odr == GYR_ODR_800):
-            self.write_register(GYR_CONF, ((self.read_register(GYR_CONF) & MSB_MASK_8BIT) | GYR_ODR_800))
-            self.gyr_odr = 800
-        elif (odr == GYR_ODR_400):
-            self.write_register(GYR_CONF, ((self.read_register(GYR_CONF) & MSB_MASK_8BIT) | GYR_ODR_400))
-            self.gyr_odr = 400
-        elif (odr == GYR_ODR_200):
-            self.write_register(GYR_CONF, ((self.read_register(GYR_CONF) & MSB_MASK_8BIT) | GYR_ODR_200))
-            self.gyr_odr = 200
-        elif (odr == GYR_ODR_100):
-            self.write_register(GYR_CONF, ((self.read_register(GYR_CONF) & MSB_MASK_8BIT) | GYR_ODR_100))
-            self.gyr_odr = 100
-        elif (odr == GYR_ODR_50):
-            self.write_register(GYR_CONF, ((self.read_register(GYR_CONF) & MSB_MASK_8BIT) | GYR_ODR_50))
-            self.gyr_odr = 50
-        elif (odr == GYR_ODR_25):
-            self.write_register(GYR_CONF, ((self.read_register(GYR_CONF) & MSB_MASK_8BIT) | GYR_ODR_25))
-            self.gyr_odr = 25
-
+    def set_gyr_odr(self, odr:int=GYR_ODR_200) -> None:
+        
+        all_odr_set = {GYR_ODR_3200, GYR_ODR_1600, GYR_ODR_800, GYR_ODR_400, GYR_ODR_200, GYR_ODR_100, GYR_ODR_50, GYR_ODR_25}
+        
+        if(odr in all_odr_set):
+            self.write_register(GYR_CONF, ((self.read_register(GYR_CONF) & MSB_MASK_8BIT) | odr))
+            self.gyr_odr = odr 
+        
+        return None 
+            
+            
     def set_acc_bwp(self, bwp=ACC_BWP_NORMAL) -> None:
-        if (bwp == ACC_BWP_OSR4):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & LSB_MASK_8BIT_8) | (ACC_BWP_OSR4 << 4)))
-        elif (bwp == ACC_BWP_OSR2):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & LSB_MASK_8BIT_8) | (ACC_BWP_OSR2 << 4)))
-        elif (bwp == ACC_BWP_NORMAL):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & LSB_MASK_8BIT_8) | (ACC_BWP_NORMAL << 4)))
-        elif (bwp == ACC_BWP_CIC):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & LSB_MASK_8BIT_8) | (ACC_BWP_CIC << 4)))
-        elif (bwp == ACC_BWP_RES16):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & LSB_MASK_8BIT_8) | (ACC_BWP_RES16 << 4)))
-        elif (bwp == ACC_BWP_RES32):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & LSB_MASK_8BIT_8) | (ACC_BWP_RES32 << 4)))
-        elif (bwp == ACC_BWP_RES64):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & LSB_MASK_8BIT_8) | (ACC_BWP_RES64 << 4)))
-        elif (bwp == ACC_BWP_RES128):
-            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & LSB_MASK_8BIT_8) | (ACC_BWP_RES128 << 4)))
+        
+        
+        all_bwp_set = {ACC_BWP_OSR4, ACC_BWP_OSR2, ACC_BWP_NORMAL, ACC_BWP_CIC, ACC_BWP_RES16, ACC_BWP_RES32, ACC_BWP_RES64, ACC_BWP_RES128}
+        
+        if (bwp in all_bwp_set):
+            self.write_register(ACC_CONF, ((self.read_register(ACC_CONF) & LSB_MASK_8BIT_8) | (bwp << 4)))
+        
+        return None 
 
     def set_gyr_bwp(self, bwp=GYR_BWP_NORMAL) -> None:
         if (bwp == GYR_BWP_OSR4):
