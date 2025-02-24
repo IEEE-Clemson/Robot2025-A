@@ -1,18 +1,29 @@
-from machine import Pin, PWM, I2C
-from registerDefinitions import *
-from config_file import bmi270_config_file
-from time import sleep
+from machine import Pin, PWM, I2C 
+from registerDefinitions import * 
+from config_file import bmi270_config_file  
+from time import sleep 
 
 
 
 
 class BMI270:
     def __init__(self, serialDevice: I2C) -> None:
+
+
         self.i2c = serialDevice
-        self.acc_range        = 2 * GRAVITY
+        self.acc_range        = 2 * GRAVITY 
         self.acc_odr          = 100
         self.gyr_range        = 1000
         self.gyr_odr          = 200
+
+
+        self.current_theta    = [0, 0, 0]
+        self.current_omega    = [0, 0, 0]
+
+
+
+
+
 
         self.load_config_file()
         self.set_acc_range(ACC_RANGE_2G)
@@ -331,6 +342,8 @@ class BMI270:
                 raw_gyr_data[i] -= 65536
         angular_velocity = [DEG2RAD * x / 32768 * self.gyr_range for x in raw_gyr_data]
 
+        self.current_omega = angular_velocity 
+
         return angular_velocity
     
     def get_temp_data(self) -> float:
@@ -339,3 +352,25 @@ class BMI270:
             if (raw_data[i] > 32767):
                 raw_data[i] -= 65536
         temp_celsius = [x * 0.001952594 + 23.0 for x in raw_data]
+
+
+
+
+    def update_theta(self, dt: float) -> None:
+
+        omega_i = self.current_omega 
+        omega_f = self.get_gyr_data()
+     
+        delta_theta_x = (omega_f[0] + omega_i[0]) * 0.5 * dt 
+        delta_theta_y = (omega_f[1] + omega_i[1]) * 0.5 * dt 
+        delta_theta_z = (omega_f[2] + omega_i[2]) * 0.5 * dt 
+
+
+        self.current_theta[0] += delta_theta_x
+        self.current_theta[1] += delta_theta_y 
+        self.current_theta[2] += delta_theta_z
+
+        self.current_omega = omega_f 
+
+
+        return None
