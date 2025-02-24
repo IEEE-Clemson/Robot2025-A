@@ -1,3 +1,6 @@
 [submodule "comms"]
 	path = comms
 	url = https://github.com/IEEE-Clemson/RoboticsCommLib2025
+[submodule "pico-sdk"]
+	path = pico-sdk
+	url = https://github.com/raspberrypi/pico-sdk.git
