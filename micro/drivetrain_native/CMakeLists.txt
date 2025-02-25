@@ -15,7 +15,11 @@ add_executable(drivetrain_native
     src/encoder.c
     src/pid_control.c
     src/util.c
-    src/pi_motor.c)
+    src/pi_motor.c
+    src/madgwick_filter.c
+    src/bmi2.c
+    src/bmi270.c
+    src/imu.c)
 
 pico_generate_pio_header(drivetrain_native 
     ${CMAKE_CURRENT_LIST_DIR}/src/encoder.pio)

@@ -5,9 +5,11 @@
 extern "C" {
 #endif
 
+#include "pico/stdlib.h"
+#include "hardware/i2c.h"
+
 #include <stdbool.h>
 
-#include "pico/stdlib.h"
 
 // Frequency of control loops
 static const uint FREQ = 200;
@@ -20,6 +22,11 @@ static const uint I2C_BAUDRATE = 400000; // 400 kHz
 
 static const uint I2C_SLAVE_SDA_PIN = 0;
 static const uint I2C_SLAVE_SCL_PIN = 1;
+
+// IMU config
+static const uint8_t IMU_SDA_PIN = 27;
+static const uint8_t IMU_SCL_PIN = 26;
+static i2c_inst_t *IMU_I2C_INST = i2c1;
 
 // 
 static const float MAX_VXY = 2.0f;

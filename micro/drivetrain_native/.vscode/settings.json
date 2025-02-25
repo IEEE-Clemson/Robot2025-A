@@ -10,6 +10,8 @@
         "encoder.pio.h": "c",
         "pid_control.h": "c",
         "mutex": "cpp",
-        "pi_motor.h": "c"
+        "pi_motor.h": "c",
+        "bmi270.h": "c",
+        "gpio.h": "c"
     }
 }

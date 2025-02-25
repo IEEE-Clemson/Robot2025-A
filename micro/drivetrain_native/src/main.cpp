@@ -11,6 +11,7 @@
 #include "i2c_fifo.h"
 #include "pi_motor.h"
 #include "pid_control.h"
+#include "imu.h"
 
 
 struct __attribute__((__packed__)) I2CMemLayout {
@@ -21,6 +22,8 @@ struct __attribute__((__packed__)) I2CMemLayout {
     int16_t cur_vx;
     int16_t cur_vy;
     int16_t cur_omega;
+
+    int16_t theta;
 };
 
 // Buff written to by i2c
@@ -33,6 +36,7 @@ struct I2CMemLayout *mem = (I2CMemLayout*)i2c_mem;
 
 struct PIDParams pid_params;
 struct PIMotor motor_fl, motor_fr, motor_bl, motor_br;
+struct IMU imu;
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
@@ -146,6 +150,7 @@ int main() {
 
     setup_slave();
     init_motors();
+    imu_init(&imu, IMU_I2C_INST, IMU_SDA_PIN, IMU_SCL_PIN);
     
     dt = 1.0f / FREQ;
     while(true) {
@@ -155,9 +160,12 @@ int main() {
         pi_motor_update(&motor_fr, dt);
         pi_motor_update(&motor_bl, dt);
         pi_motor_update(&motor_br, dt);
+        
+        imu_update(&imu, dt);
 
         update_local_vel();
         update_target_vel();
+        mem->theta = (int16_t)(imu_get_z_radians(&imu) / (2 * PI) * 32768);
         
         busy_wait_until(time_to_sleep);
 
@@ -166,7 +174,6 @@ int main() {
         if(i == 0) {
             led = !led;
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
-            printf("Here %f\n", motor_bl.cur_vel);
         }
     }
 }
