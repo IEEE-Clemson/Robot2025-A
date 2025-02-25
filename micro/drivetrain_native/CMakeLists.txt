@@ -10,7 +10,7 @@ pico_sdk_init()
 include_directories(drivetrain_native include)
 
 add_executable(drivetrain_native 
-    src/main.cpp
+    src/main.c
     src/i2c_slave.c
     src/encoder.c
     src/pid_control.c
