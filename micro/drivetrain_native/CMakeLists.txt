@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(PICO_BOARD pico_w)
+set(PICO_BOARD pico)
 
 include(../../pico-sdk/pico_sdk_init.cmake)
 
@@ -30,11 +30,15 @@ pico_generate_pio_header(drivetrain_native
 target_link_libraries(drivetrain_native
     pico_stdlib 
     pico_sync
-    pico_cyw43_arch_none
     hardware_adc
     hardware_pio
     hardware_i2c
     hardware_pwm)
+if(PICO_BOARD STREQUAL pico_w)
+    target_link_libraries(drivetrain_native pico_cyw43_arch_none)
+    target_compile_definitions(drivetrain_native PRIVATE PICO_W=1)
+    message("PICO W enabled")
+endif()
 
 # Create map/bin/hex/uf2 files
 pico_add_extra_outputs(drivetrain_native)

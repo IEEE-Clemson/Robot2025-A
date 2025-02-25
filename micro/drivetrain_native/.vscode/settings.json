@@ -12,6 +12,9 @@
         "mutex": "cpp",
         "pi_motor.h": "c",
         "bmi270.h": "c",
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "critical_section.h": "c",
+        "stdio.h": "c",
+        "cyw43_arch.h": "c"
     }
 }

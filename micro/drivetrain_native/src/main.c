@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "pico/critical_section.h"
+#ifdef PICO_W
 #include "pico/cyw43_arch.h"
+#endif
 
 #include "hardware/adc.h"
 #include "hardware/i2c.h"
@@ -133,18 +135,25 @@ static void update_target_vel() {
     motor_br.setpoint = a * (vx - vy + b);
 }
 
-
+static const int LED_PIN_PICO = 25;
 int main() {
     float dt;
     absolute_time_t time, time_to_sleep;
     int i = 0;
     bool led = false;
 
+    // Disable pause on debug when sleeping
+    timer_hw->dbgpause = 0;
+
     stdio_init_all();
-    if (cyw43_arch_init()) {
+#ifdef PICO_W
+    if(cyw43_arch_init()) {
         printf("Wi-Fi init failed");
-        return -1;
     }
+#else
+    gpio_init(LED_PIN_PICO);
+    gpio_set_dir(LED_PIN_PICO, true);
+#endif
 
     printf("Starting\n");
 
@@ -173,7 +182,11 @@ int main() {
         i = (i + 1) % 100;
         if(i == 0) {
             led = !led;
+#ifdef PICO_W
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
+#else
+            gpio_put(LED_PIN_PICO, led);
+#endif
         }
     }
 }
