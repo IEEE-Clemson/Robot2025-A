@@ -70,11 +70,11 @@ void pi_motor_drive_raw(struct PIMotor *motor, float percent_out)
         out_f = 0;
         out_r = 0;
     } else if(percent_out > deadband) {
-        out_f = (uint16_t)(percent_out * 65536);
+        out_f = (uint16_t)(percent_out * UINT16_MAX);
         out_r = 0;
     } else if(percent_out < -deadband) {
         out_f = 0;
-        out_r = (uint16_t)(percent_out * 65536);
+        out_r = (uint16_t)(percent_out * UINT16_MAX);
     } else {
         out_f = 0;
         out_r = 0;

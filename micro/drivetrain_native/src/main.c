@@ -113,18 +113,18 @@ static void update_local_vel() {
     local_vy = (-w_fl + w_fr + w_bl - w_br) * a;
     omega = (-w_fl + w_fr - w_bl + w_br) * b;
 
-    mem->cur_vx = (int16_t)(local_vx / MAX_VXY * 32768);
-    mem->cur_vy = (int16_t)(local_vy / MAX_VXY * 32768);
-    mem->cur_omega = (int16_t)(omega / MAX_OMEGA * 32768);
+    mem->cur_vx = (int16_t)(local_vx / MAX_VXY * INT16_MAX);
+    mem->cur_vy = (int16_t)(local_vy / MAX_VXY * INT16_MAX);
+    mem->cur_omega = (int16_t)(omega / MAX_OMEGA * INT16_MAX);
 }
 
 static void update_target_vel() {
     float vx, vy, omega;
     float a, b;
 
-    vx = (float)(mem->target_vx) * MAX_VXY / 32768.0f;
-    vy = (float)(mem->target_vy) * MAX_VXY / 32768.0f;
-    omega = (float)(mem->target_omega) * MAX_OMEGA / 32768.0f;
+    vx = (float)(mem->target_vx) * MAX_VXY / INT16_MAX;
+    vy = (float)(mem->target_vy) * MAX_VXY / INT16_MAX;
+    omega = (float)(mem->target_omega) * MAX_OMEGA / INT16_MAX;
 
     a = 1 / WHEEL_RADIUS;
     b = (WHEEL_DIST_X + WHEEL_DIST_Y) * omega;
@@ -156,7 +156,7 @@ int main() {
 #endif
 
     printf("Starting\n");
-
+    
     setup_slave();
     init_motors();
     imu_init(&imu, IMU_I2C_INST, IMU_SDA_PIN, IMU_SCL_PIN);
@@ -174,7 +174,7 @@ int main() {
 
         update_local_vel();
         update_target_vel();
-        mem->theta = (int16_t)(imu_get_z_radians(&imu) / (2 * PI) * 32768);
+        mem->theta = (int16_t)(imu_get_z_radians(&imu) / (2 * PI) * INT16_MAX);
         
         busy_wait_until(time_to_sleep);
 
