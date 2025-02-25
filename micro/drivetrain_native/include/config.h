@@ -24,8 +24,8 @@ static const uint I2C_SLAVE_SDA_PIN = 0;
 static const uint I2C_SLAVE_SCL_PIN = 1;
 
 // IMU config
-static const uint8_t IMU_SDA_PIN = 27;
-static const uint8_t IMU_SCL_PIN = 26;
+static const uint8_t IMU_SDA_PIN = 26;
+static const uint8_t IMU_SCL_PIN = 27;
 static i2c_inst_t *IMU_I2C_INST = i2c1;
 
 // 

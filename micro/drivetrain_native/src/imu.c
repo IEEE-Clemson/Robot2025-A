@@ -6,8 +6,10 @@
 
 #define GRAVITY_EARTH  (9.80665f)
 
+#define ADDR           UINT8_C(0x68)
 #define ACCEL          UINT8_C(0x00)
 #define GYRO           UINT8_C(0x01)
+#define TIMEOUT_MS      UINT8_C(20)
 /*!
  * @brief This internal API is used to set configurations for accel and gyro.
  */
@@ -25,9 +27,13 @@ static int8_t set_accel_gyro_config(struct bmi2_dev *bmi)
 
     /* Get default configurations for the type of feature selected. */
     rslt = bmi2_get_sensor_config(config, 2, bmi);
-
+    if(rslt < 0)
+        printf("bmi2_get_sensor_config failed: %i\n", rslt
+        );
     /* Map data ready interrupt to interrupt pin. */
     rslt = bmi2_map_data_int(BMI2_DRDY_INT, BMI2_INT1, bmi);
+    if(rslt < 0)
+        printf("bmi_map_data_int failed: %i\n", rslt);
 
     if (rslt == BMI2_OK)
     {
@@ -83,6 +89,8 @@ static int8_t set_accel_gyro_config(struct bmi2_dev *bmi)
 
         /* Set the accel and gyro configurations. */
         rslt = bmi2_set_sensor_config(config, 2, bmi);
+        if(rslt < 0)
+            printf("bmi2_set_sensor_config failed: %i\n", rslt);
     }
 
     return rslt;
@@ -91,18 +99,47 @@ static int8_t set_accel_gyro_config(struct bmi2_dev *bmi)
 static BMI2_INTF_RETURN_TYPE bmi2_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr)
 {
     struct IMU *imu = (struct IMU *)intf_ptr;
+    int res;
+    absolute_time_t start, timeout;
+    start = get_absolute_time();
+    timeout = delayed_by_ms(start, TIMEOUT_MS);
+    printf("reading\n");
 
-    i2c_read_blocking(imu->i2c, reg_addr, reg_data, len, false);
+    res = i2c_write_blocking_until(imu->i2c, ADDR, &reg_addr, 1, true, timeout);
+    if(res != 1) {
+        return BMI2_E_COM_FAIL;
+    }
+    res = i2c_read_blocking_until(imu->i2c, ADDR, reg_data, len, false, timeout);
+    if(res != len) {
+        return BMI2_E_COM_FAIL;
+    }
     return BMI2_INTF_RET_SUCCESS;
 }
 
 static BMI2_INTF_RETURN_TYPE bmi2_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, void *intf_ptr)
 {
     struct IMU *imu = (struct IMU *)intf_ptr;
+    int res;
+    absolute_time_t start, timeout;
+    start = get_absolute_time();
+    timeout = delayed_by_ms(start, TIMEOUT_MS);
 
-    i2c_write_blocking(imu->i2c, reg_addr, reg_data, len, false);
+    res = i2c_write_blocking_until(imu->i2c, ADDR, &reg_addr, 1, true, timeout);
+    if(res != 1) {
+        return BMI2_E_COM_FAIL;
+    }
+    res = i2c_write_blocking_until(imu->i2c, ADDR, reg_data, len, false, timeout);
+    if(res != len) {
+        return BMI2_E_COM_FAIL;
+    }
     return BMI2_INTF_RET_SUCCESS;
 }
+
+void bmi2_delay_us(uint32_t period, void *intf_ptr)
+{
+    sleep_us(period);
+}
+
 
 
 /*!
@@ -137,6 +174,7 @@ void imu_init(struct IMU *imu, i2c_inst_t *i2c, uint8_t sda, uint8_t scl)
     uint8_t sensor_list[2] = { BMI2_ACCEL, BMI2_GYRO };
     struct quaternion unit_quat = {1, 0, 0, 0};
     
+    printf("Initializing i2c for gyro\n");
     // Init i2c
     i2c_init(i2c, 400000);
     gpio_set_function(sda, GPIO_FUNC_I2C);
@@ -144,28 +182,39 @@ void imu_init(struct IMU *imu, i2c_inst_t *i2c, uint8_t sda, uint8_t scl)
     gpio_pull_up(sda);
     gpio_pull_up(scl);
 
+    printf("Initializing gyro\n");
     // Init gyro
     imu->bmi.intf = BMI2_I2C_INTF;
     imu->bmi.write = bmi2_i2c_write;
     imu->bmi.read = bmi2_i2c_read;
+    imu->bmi.delay_us = bmi2_delay_us;
     imu->bmi.intf_ptr = imu;
+    imu->i2c = i2c;
 
-    bmi270_init(&imu->bmi);
+    res = bmi270_init(&imu->bmi);
+    if(res < 0)
+        printf("bmi270_init failed: %i\n", res);
     set_accel_gyro_config(&imu->bmi);
-    bmi2_sensor_enable(sensor_list, 2, &imu->bmi);
+    res = bmi2_sensor_enable(sensor_list, 2, &imu->bmi);
+    if(res < 0)
+        printf("bmi2_sensor_enable failed: %i\n", res);
 
     // Init rotation as unit quaternion
     imu->q = unit_quat;
+    printf("Initialized gyro sucessfully\n");
 }
 
 void imu_update(struct IMU *imu, float dt)
 {
+    int res;
     float ax = 0.0f, ay = 0.0f, az = 0.0f;
     float gx = 0.0f, gy = 0.0f, gz = 0.0f;
     struct bmi2_sens_data sensor_data = { { 0 } };
     uint8_t resolution;
 
     bmi2_get_sensor_data(&sensor_data, &imu->bmi);
+    if(res < 0)
+        printf("bmi2_get_sensor_data failed: %i\n", res);
     resolution = imu->bmi.resolution;
     
     /* Converting lsb to meter per second squared for 16 bit accelerometer at 2G range. */
