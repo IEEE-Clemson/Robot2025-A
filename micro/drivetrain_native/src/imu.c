@@ -103,7 +103,6 @@ static BMI2_INTF_RETURN_TYPE bmi2_i2c_read(uint8_t reg_addr, uint8_t *reg_data, 
     absolute_time_t start, timeout;
     start = get_absolute_time();
     timeout = delayed_by_ms(start, TIMEOUT_MS);
-    printf("reading\n");
 
     res = i2c_write_blocking_until(imu->i2c, ADDR, &reg_addr, 1, true, timeout);
     if(res != 1) {
@@ -156,16 +155,16 @@ static float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width)
 }
 
 /*!
- * @brief This function converts lsb to degree per second for 16 bit gyro at
+ * @brief This function converts lsb to radians per second for 16 bit gyro at
  * range 125, 250, 500, 1000 or 2000dps.
  */
-static float lsb_to_dps(int16_t val, float dps, uint8_t bit_width)
+static float lsb_to_rads(int16_t val, float dps, uint8_t bit_width)
 {
     double power = 2;
 
     float half_scale = (float)((pow((double)power, (double)bit_width) / 2.0f));
 
-    return (dps / (half_scale)) * (val);
+    return (dps / (half_scale)) * (val) * (PI) / (180.0f);
 }
 
 void imu_init(struct IMU *imu, i2c_inst_t *i2c, uint8_t sda, uint8_t scl)
@@ -223,9 +222,9 @@ void imu_update(struct IMU *imu, float dt)
     az = lsb_to_mps2(sensor_data.acc.z, (float)2, resolution);
 
     /* Converting lsb to degree per second for 16 bit gyro at 2000dps range. */
-    gx = lsb_to_dps(sensor_data.gyr.x, (float)2000, resolution);
-    gy = lsb_to_dps(sensor_data.gyr.y, (float)2000, resolution);
-    gz = lsb_to_dps(sensor_data.gyr.z, (float)2000, resolution);
+    gx = lsb_to_rads(sensor_data.gyr.x, (float)2000, resolution);
+    gy = lsb_to_rads(sensor_data.gyr.y, (float)2000, resolution);
+    gz = lsb_to_rads(sensor_data.gyr.z, (float)2000, resolution);
 
     imu_filter(&imu->q, dt, ax, ay, az, gx, gy, gz);
 }
