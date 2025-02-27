@@ -1,237 +1,207 @@
 #include "imu.h"
 
 #include "madgwick_filter.h"
-#include "bmi270.h"
 #include "hardware/gpio.h"
+
 
 #define GRAVITY_EARTH  (9.80665f)
 
-#define ADDR           UINT8_C(0x68)
+#define ADDR           UINT8_C(0x28)
 #define ACCEL          UINT8_C(0x00)
 #define GYRO           UINT8_C(0x01)
-#define TIMEOUT_MS      UINT8_C(20)
-/*!
- * @brief This internal API is used to set configurations for accel and gyro.
- */
-static int8_t set_accel_gyro_config(struct bmi2_dev *bmi)
+#define TIMEOUT_MS      UINT8_C(5000)
+
+static int i2c_read_data(i2c_inst_t* i2c, uint8_t reg_addr, uint8_t *reg_data, uint32_t len)
 {
-    /* Status of api are returned to this variable. */
-    int8_t rslt;
-
-    /* Structure to define accelerometer and gyro configuration. */
-    struct bmi2_sens_config config[2];
-
-    /* Configure the type of feature. */
-    config[ACCEL].type = BMI2_ACCEL;
-    config[GYRO].type = BMI2_GYRO;
-
-    /* Get default configurations for the type of feature selected. */
-    rslt = bmi2_get_sensor_config(config, 2, bmi);
-    if(rslt < 0)
-        printf("bmi2_get_sensor_config failed: %i\n", rslt
-        );
-    /* Map data ready interrupt to interrupt pin. */
-    rslt = bmi2_map_data_int(BMI2_DRDY_INT, BMI2_INT1, bmi);
-    if(rslt < 0)
-        printf("bmi_map_data_int failed: %i\n", rslt);
-
-    if (rslt == BMI2_OK)
-    {
-        /* NOTE: The user can change the following configuration parameters according to their requirement. */
-        /* Set Output Data Rate */
-        config[ACCEL].cfg.acc.odr = BMI2_ACC_ODR_200HZ;
-
-        /* Gravity range of the sensor (+/- 2G, 4G, 8G, 16G). */
-        config[ACCEL].cfg.acc.range = BMI2_ACC_RANGE_2G;
-
-        /* The bandwidth parameter is used to configure the number of sensor samples that are averaged
-         * if it is set to 2, then 2^(bandwidth parameter) samples
-         * are averaged, resulting in 4 averaged samples.
-         * Note1 : For more information, refer the datasheet.
-         * Note2 : A higher number of averaged samples will result in a lower noise level of the signal, but
-         * this has an adverse effect on the power consumed.
-         */
-        config[ACCEL].cfg.acc.bwp = BMI2_ACC_NORMAL_AVG4;
-
-        /* Enable the filter performance mode where averaging of samples
-         * will be done based on above set bandwidth and ODR.
-         * There are two modes
-         *  0 -> Ultra low power mode
-         *  1 -> High performance mode(Default)
-         * For more info refer datasheet.
-         */
-        config[ACCEL].cfg.acc.filter_perf = BMI2_PERF_OPT_MODE;
-
-        /* The user can change the following configuration parameters according to their requirement. */
-        /* Set Output Data Rate */
-        config[GYRO].cfg.gyr.odr = BMI2_GYR_ODR_200HZ;
-
-        /* Gyroscope Angular Rate Measurement Range.By default the range is 2000dps. */
-        config[GYRO].cfg.gyr.range = BMI2_GYR_RANGE_2000;
-
-        /* Gyroscope bandwidth parameters. By default the gyro bandwidth is in normal mode. */
-        config[GYRO].cfg.gyr.bwp = BMI2_GYR_NORMAL_MODE;
-
-        /* Enable/Disable the noise performance mode for precision yaw rate sensing
-         * There are two modes
-         *  0 -> Ultra low power mode(Default)
-         *  1 -> High performance mode
-         */
-        config[GYRO].cfg.gyr.noise_perf = BMI2_POWER_OPT_MODE;
-
-        /* Enable/Disable the filter performance mode where averaging of samples
-         * will be done based on above set bandwidth and ODR.
-         * There are two modes
-         *  0 -> Ultra low power mode
-         *  1 -> High performance mode(Default)
-         */
-        config[GYRO].cfg.gyr.filter_perf = BMI2_PERF_OPT_MODE;
-
-        /* Set the accel and gyro configurations. */
-        rslt = bmi2_set_sensor_config(config, 2, bmi);
-        if(rslt < 0)
-            printf("bmi2_set_sensor_config failed: %i\n", rslt);
-    }
-
-    return rslt;
-}
-
-static BMI2_INTF_RETURN_TYPE bmi2_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr)
-{
-    struct IMU *imu = (struct IMU *)intf_ptr;
     int res;
     absolute_time_t start, timeout;
+
     start = get_absolute_time();
     timeout = delayed_by_ms(start, TIMEOUT_MS);
 
-    res = i2c_write_blocking_until(imu->i2c, ADDR, &reg_addr, 1, true, timeout);
+    res = i2c_write_blocking(i2c, ADDR, &reg_addr, 1, true);
     if(res != 1) {
-        return BMI2_E_COM_FAIL;
+        printf("Write addr fail\n");
+
+        return -2;
     }
-    res = i2c_read_blocking_until(imu->i2c, ADDR, reg_data, len, false, timeout);
+    res = i2c_read_blocking(i2c, ADDR, reg_data, len, false);
     if(res != len) {
-        return BMI2_E_COM_FAIL;
+        printf("Read data fail\n");
+        return -2;
     }
-    return BMI2_INTF_RET_SUCCESS;
+    return 0;
 }
 
-static BMI2_INTF_RETURN_TYPE bmi2_i2c_write(uint8_t reg_addr, const uint8_t *reg_data, uint32_t len, void *intf_ptr)
+static int i2c_write_data(i2c_inst_t* i2c, uint8_t reg_addr, const uint8_t *reg_data, uint32_t len)
 {
-    struct IMU *imu = (struct IMU *)intf_ptr;
     int res;
     absolute_time_t start, timeout;
+    int i;
+    uint8_t data[2];
+
     start = get_absolute_time();
     timeout = delayed_by_ms(start, TIMEOUT_MS);
 
-    res = i2c_write_blocking_until(imu->i2c, ADDR, &reg_addr, 1, true, timeout);
-    if(res != 1) {
-        return BMI2_E_COM_FAIL;
+    for(i = 0; i < len; i++) {
+        data[0] = reg_addr;
+        data[1] = reg_data[i];
+        start = get_absolute_time();
+        timeout = delayed_by_ms(start, TIMEOUT_MS);
+        res = i2c_write_burst_blocking(i2c, ADDR, &reg_addr, 1);
+        res = i2c_write_blocking_until(i2c, ADDR, reg_data + i, 1, false, timeout);
+        if(res != 1) {
+            printf("Write data fail\n");
+            return -2;
+        }
+        sleep_us(450);
     }
-    res = i2c_write_blocking_until(imu->i2c, ADDR, reg_data, len, false, timeout);
-    if(res != len) {
-        return BMI2_E_COM_FAIL;
-    }
-    return BMI2_INTF_RET_SUCCESS;
+    return 0;
 }
 
-void bmi2_delay_us(uint32_t period, void *intf_ptr)
+
+// BNO055 Registers
+
+// I2C
+static const uint8_t I2C_BUS         = 1;
+
+// General
+static const uint8_t CHIP_ID_ADDRESS = 0x00;
+static const uint8_t SENSORTIME_0    = 0x18;
+static const uint8_t PWR_CONF        = 0x7C;
+static const uint8_t PWR_CTRL        = 0x7D;
+
+// Accelerometer
+static const uint8_t ACC_CONF        = 0x40;
+static const uint8_t ACC_RANGE       = 0x41;
+static const uint8_t ACC_X_7_0       = 0x0C;
+static const uint8_t ACC_X_15_8      = 0x0D;
+static const uint8_t ACC_Y_7_0       = 0x0E;
+static const uint8_t ACC_Y_15_8      = 0x0F;
+static const uint8_t ACC_Z_7_0       = 0x10;
+static const uint8_t ACC_Z_15_8      = 0x11;
+
+// Gyroscope
+static const uint8_t GYR_CONF        = 0x42;
+static const uint8_t GYR_RANGE       = 0x43;
+static const uint8_t GYR_X_7_0       = 0x14;
+static const uint8_t GYR_X_15_8      = 0x15;
+static const uint8_t GYR_Y_7_0       = 0x16;
+static const uint8_t GYR_Y_15_8      = 0x17;
+static const uint8_t GYR_Z_7_0       = 0x18;
+static const uint8_t GYR_Z_15_8      = 0x19;
+
+// Temperature
+static const uint8_t TEMP_7_0        = 0x22;
+static const uint8_t TEMP_15_8       = 0x23;
+
+// Common Definitions
+// General
+static const float   GRAVITY         = 9.81288;
+static const float   DEG2RAD         = 3.141592653589793 / 180.0;
+static const float   HERTZ_100       = 0.01;
+static const float   HERTZ_200       = 0.005;
+static const uint8_t BIT_0           = 1 << 0;
+static const uint8_t BIT_1           = 1 << 1;
+static const uint8_t BIT_2           = 1 << 2;
+static const uint8_t BIT_3           = 1 << 3;
+static const uint8_t BIT_4           = 1 << 4;
+static const uint8_t BIT_5           = 1 << 5;
+static const uint8_t BIT_6           = 1 << 6;
+static const uint8_t BIT_7           = 1 << 7;
+static const uint8_t LSB_MASK_8BIT   = 0x0F;      // 00001111
+static const uint8_t MSB_MASK_8BIT   = 0xF0;      // 11110000
+static const uint8_t FULL_MASK_8BIT  = 0xFF;      // 11111111
+static const uint8_t LSB_MASK_8BIT_5 = 0x1F;      // 00011111
+static const uint8_t LSB_MASK_8BIT_8 = 0x8F;      // 10001111
+static const uint8_t LAST_2_BITS     = 0xC0;      // 11000000
+static const uint8_t LAST_3_BITS     = 0xE0;      // 11100000
+
+// Accelerometer
+static const uint8_t ACC_RANGE_2G    = 0x00;      // +/- 2g
+static const uint8_t ACC_RANGE_4G    = 0x01;      // +/- 4g
+static const uint8_t ACC_RANGE_8G    = 0x02;      // +/- 8g
+static const uint8_t ACC_RANGE_16G   = 0x03;      // +/- 16g
+static const uint8_t ACC_ODR_1600    = 0x0C;      // 1600Hz
+static const uint8_t ACC_ODR_800     = 0x0B;      // 800Hz
+static const uint8_t ACC_ODR_400     = 0x0A;      // 400Hz
+static const uint8_t ACC_ODR_200     = 0x09;      // 200Hz
+static const uint8_t ACC_ODR_100     = 0x08;      // 100Hz
+static const uint8_t ACC_ODR_50      = 0x07;      // 50Hz
+static const uint8_t ACC_ODR_25      = 0x06;      // 25Hz
+static const uint8_t ACC_BWP_OSR4    = 0x00;      // OSR4
+static const uint8_t ACC_BWP_OSR2    = 0x01;      // OSR2
+static const uint8_t ACC_BWP_NORMAL  = 0x02;      // Normal
+static const uint8_t ACC_BWP_CIC     = 0x03;      // CIC
+static const uint8_t ACC_BWP_RES16   = 0x04;      // Reserved
+static const uint8_t ACC_BWP_RES32   = 0x05;      // Reserved
+static const uint8_t ACC_BWP_RES64   = 0x06;      // Reserved
+static const uint8_t ACC_BWP_RES128  = 0x07;      // Reserved
+
+// Gyroscope
+static const uint8_t GYR_RANGE_2000  = 0x00;      // +/- 2000dps,  16.4 LSB/dps
+static const uint8_t GYR_RANGE_1000  = 0x01;      // +/- 1000dps,  32.8 LSB/dps
+static const uint8_t GYR_RANGE_500   = 0x02;      // +/- 500dps,   65.6 LSB/dps
+static const uint8_t GYR_RANGE_250   = 0x03;      // +/- 250dps,  131.2 LSB/dps
+static const uint8_t GYR_RANGE_125   = 0x04;      // +/- 125dps,  262.4 LSB/dps
+static const uint8_t GYR_ODR_3200    = 0x0D;      // 3200Hz
+static const uint8_t GYR_ODR_1600    = 0x0C;      // 1600Hz
+static const uint8_t GYR_ODR_800     = 0x0B;      // 800Hz
+static const uint8_t GYR_ODR_400     = 0x0A;      // 400Hz
+static const uint8_t GYR_ODR_200     = 0x09;      // 200Hz
+static const uint8_t GYR_ODR_100     = 0x08;      // 100Hz
+static const uint8_t GYR_ODR_50      = 0x07;      // 50Hz
+static const uint8_t GYR_ODR_25      = 0x06;      // 25Hz
+static const uint8_t GYR_BWP_OSR4    = 0x00;      // OSR4
+static const uint8_t GYR_BWP_OSR2    = 0x01;      // OSR2
+static const uint8_t GYR_BWP_NORMAL  = 0x02;      // Normal
+
+static uint8_t read_register(struct BNO055* bmi, uint8_t reg)
 {
-    sleep_us(period);
+    uint8_t data;
+    int res;
+    res = i2c_read_data(bmi->i2c, reg, &data, 1);
+    if(res < 0)
+        printf("Failed to read register\n");
+    return data;
 }
 
-
-
-/*!
- * @brief This function converts lsb to meter per second squared for 16 bit accelerometer at
- * range 2G, 4G, 8G or 16G.
- */
-static float lsb_to_mps2(int16_t val, float g_range, uint8_t bit_width)
-{
-    double power = 2;
-
-    float half_scale = (float)((pow((double)power, (double)bit_width) / 2.0f));
-
-    return (GRAVITY_EARTH * val * g_range) / half_scale;
-}
-
-/*!
- * @brief This function converts lsb to radians per second for 16 bit gyro at
- * range 125, 250, 500, 1000 or 2000dps.
- */
-static float lsb_to_rads(int16_t val, float dps, uint8_t bit_width)
-{
-    double power = 2;
-
-    float half_scale = (float)((pow((double)power, (double)bit_width) / 2.0f));
-
-    return (dps / (half_scale)) * (val) * (PI) / (180.0f);
-}
-
-void imu_init(struct IMU *imu, i2c_inst_t *i2c, uint8_t sda, uint8_t scl)
+static void write_register(struct BNO055* bmi, uint8_t reg, uint8_t data)
 {
     int res;
-    uint8_t sensor_list[2] = { BMI2_ACCEL, BMI2_GYRO };
-    struct quaternion unit_quat = {1, 0, 0, 0};
-    
-    printf("Initializing i2c for gyro\n");
-    // Init i2c
+    res = i2c_write_data(bmi->i2c, reg, &data, 1);
+    if(res < 0)
+        printf("Failed to write register\n");
+}
+
+
+void bno_init(struct BNO055 *bno, i2c_inst_t *i2c, uint8_t sda, uint8_t scl)
+{
     i2c_init(i2c, 400000);
     gpio_set_function(sda, GPIO_FUNC_I2C);
     gpio_set_function(scl, GPIO_FUNC_I2C);
     gpio_pull_up(sda);
     gpio_pull_up(scl);
 
-    printf("Initializing gyro\n");
-    // Init gyro
-    imu->bmi.intf = BMI2_I2C_INTF;
-    imu->bmi.write = bmi2_i2c_write;
-    imu->bmi.read = bmi2_i2c_read;
-    imu->bmi.delay_us = bmi2_delay_us;
-    imu->bmi.intf_ptr = imu;
-    imu->i2c = i2c;
+    bno->i2c = i2c;
 
-    res = bmi270_init(&imu->bmi);
-    if(res < 0)
-        printf("bmi270_init failed: %i\n", res);
-    set_accel_gyro_config(&imu->bmi);
-    res = bmi2_sensor_enable(sensor_list, 2, &imu->bmi);
-    if(res < 0)
-        printf("bmi2_sensor_enable failed: %i\n", res);
-
-    // Init rotation as unit quaternion
-    imu->q = unit_quat;
-    printf("Initialized gyro sucessfully\n");
+    write_register(bno, 0x3D, 0x5); // Enable
 }
 
-void imu_update(struct IMU *imu, float dt)
+
+void bno_get_raw_gyr_data(struct BNO055* bmi, int16_t *gx, int16_t* gy, int16_t*gz)
 {
-    int res;
-    float ax = 0.0f, ay = 0.0f, az = 0.0f;
-    float gx = 0.0f, gy = 0.0f, gz = 0.0f;
-    struct bmi2_sens_data sensor_data = { { 0 } };
-    uint8_t resolution;
+    uint16_t gx1, gx0, gy1, gy0, gz1, gz0;
+    gx0 = read_register(bmi, GYR_X_7_0);
+    gx1 = read_register(bmi, GYR_X_15_8);
+    *gx = (gx1 << 8) | gx0;
 
-    bmi2_get_sensor_data(&sensor_data, &imu->bmi);
-    if(res < 0)
-        printf("bmi2_get_sensor_data failed: %i\n", res);
-    resolution = imu->bmi.resolution;
-    
-    /* Converting lsb to meter per second squared for 16 bit accelerometer at 2G range. */
-    ax = lsb_to_mps2(sensor_data.acc.x, (float)2, resolution);
-    ay = lsb_to_mps2(sensor_data.acc.y, (float)2, resolution);
-    az = lsb_to_mps2(sensor_data.acc.z, (float)2, resolution);
 
-    /* Converting lsb to degree per second for 16 bit gyro at 2000dps range. */
-    gx = lsb_to_rads(sensor_data.gyr.x, (float)2000, resolution);
-    gy = lsb_to_rads(sensor_data.gyr.y, (float)2000, resolution);
-    gz = lsb_to_rads(sensor_data.gyr.z, (float)2000, resolution);
+    gy0 = read_register(bmi, GYR_Y_7_0);
+    gy1 = read_register(bmi, GYR_Y_15_8);
+    *gy = (gy1 << 8) | gy0;
 
-    imu_filter(&imu->q, dt, ax, ay, az, gx, gy, gz);
-}
-
-float imu_get_z_radians(struct IMU *imu) {
-    struct quaternion q = imu->q;
-    float roll, pitch, yaw;
-    eulerAngles(q, &roll, &pitch, &yaw);
-    return yaw;
+    gz0 = read_register(bmi, GYR_Z_7_0);
+    gz1 = read_register(bmi, GYR_Z_15_8);
+    *gz = (gz1 << 8) | gz0;
 }

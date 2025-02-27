@@ -7,19 +7,20 @@ extern "C" {
 
 #include "hardware/i2c.h"
 
-#include "bmi270.h"
 #include "madgwick_filter.h"
 
-struct IMU {
-    struct bmi2_dev bmi;
+struct BNO055 {
     i2c_inst_t *i2c;
-
+    uint8_t addr;
+    float acc_range;
+    uint acc_odr;
+    uint gyr_range;
+    uint gyr_odr;
     struct quaternion q;
 };
 
-void imu_init(struct IMU *imu, i2c_inst_t *i2c, uint8_t sda, uint8_t scl);
-void imu_update(struct IMU *imu, float dt);
-float imu_get_z_radians(struct IMU *imu);
+void bno_init(struct BNO055 *bno, i2c_inst_t *i2c, uint8_t sda, uint8_t scl);
+void bno_get_raw_gyr_data(struct BNO055* bno, int16_t *gx, int16_t* gy, int16_t* gz);
 
 #ifdef __cplusplus
 }

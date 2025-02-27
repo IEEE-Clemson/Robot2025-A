@@ -20,8 +20,8 @@ static const uint FREQ = 200;
 static const uint I2C_SLAVE_ADDRESS = 0x41;
 static const uint I2C_BAUDRATE = 400000; // 400 kHz
 
-static const uint I2C_SLAVE_SDA_PIN = 0;
-static const uint I2C_SLAVE_SCL_PIN = 1;
+static const uint I2C_SLAVE_SDA_PIN = 4;
+static const uint I2C_SLAVE_SCL_PIN = 5;
 
 // IMU config
 static const uint8_t IMU_SDA_PIN = 26;

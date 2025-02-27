@@ -15,6 +15,10 @@
         "gpio.h": "c",
         "critical_section.h": "c",
         "stdio.h": "c",
-        "cyw43_arch.h": "c"
+        "cyw43_arch.h": "c",
+        "adc.h": "c",
+        "i2c_slave.h": "c",
+        "functional": "c",
+        "cstdint": "cpp"
     }
 }

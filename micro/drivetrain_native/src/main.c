@@ -14,19 +14,7 @@
 #include "pi_motor.h"
 #include "pid_control.h"
 #include "imu.h"
-
-
-struct __attribute__((__packed__)) I2CMemLayout {
-    int16_t target_vx;
-    int16_t target_vy;
-    int16_t target_omega;
-
-    int16_t cur_vx;
-    int16_t cur_vy;
-    int16_t cur_omega;
-
-    int16_t theta;
-};
+#include "comm.h"
 
 // Buff written to by i2c
 static uint8_t i2c_mem[BUFF_SIZE];
@@ -38,7 +26,7 @@ struct I2CMemLayout *mem = (struct I2CMemLayout*)(i2c_mem);
 
 struct PIDParams pid_params;
 struct PIMotor motor_fl, motor_fr, motor_bl, motor_br;
-struct IMU imu;
+struct BNO055 imu = {};
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
@@ -155,11 +143,13 @@ int main() {
     gpio_set_dir(LED_PIN_PICO, true);
 #endif
 
+    sleep_ms(4000);
+
     printf("Starting\n");
     
     setup_slave();
     init_motors();
-    imu_init(&imu, IMU_I2C_INST, IMU_SDA_PIN, IMU_SCL_PIN);
+    bno_init(&imu, IMU_I2C_INST, IMU_SDA_PIN, IMU_SCL_PIN);
     
     dt = 1.0f / FREQ;
     while(true) {
@@ -170,17 +160,21 @@ int main() {
         pi_motor_update(&motor_bl, dt);
         pi_motor_update(&motor_br, dt);
         
-        imu_update(&imu, dt);
+        int16_t ax, ay, az;
+        bno_get_raw_gyr_data(&imu, &ax, &ay, &az);
+        //int time = get_sensor_time(&imu);
+
 
         update_local_vel();
         update_target_vel();
-        mem->theta = (int16_t)(imu_get_z_radians(&imu) / (2 * PI) * INT16_MAX);
+        //mem->theta = (int16_t)(imu_get_z_radians(&imu) / (2 * PI) * INT16_MAX);
         
         busy_wait_until(time_to_sleep);
 
         // Blink led for heartbeat
         i = (i + 1) % 100;
         if(i == 0) {
+            printf("Heartbeat %f %f %f\n", ax, ay, az);
             led = !led;
 #ifdef PICO_W
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);

@@ -17,8 +17,6 @@ add_executable(drivetrain_native
     src/util.c
     src/pi_motor.c
     src/madgwick_filter.c
-    src/bmi2.c
-    src/bmi270.c
     src/imu.c)
 
 pico_generate_pio_header(drivetrain_native 
@@ -44,5 +42,5 @@ endif()
 pico_add_extra_outputs(drivetrain_native)
 
 # Enable USB serial
-pico_enable_stdio_usb(drivetrain_native 1)
-pico_enable_stdio_uart(drivetrain_native 0)
+pico_enable_stdio_usb(drivetrain_native 0)
+pico_enable_stdio_uart(drivetrain_native 1)
