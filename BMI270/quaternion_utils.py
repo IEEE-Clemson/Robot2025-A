@@ -27,17 +27,36 @@ class Quaternion:
         self.angle_phi:   float = 0
         self.angle_theta: float = 0
         self.angle_psi:   float = 0
+        '''
+        These euler angles are not the essense of the quaternion (obviously), but are here to provide other perspectives and 
+        utilities of converting between euler angles and quaternion angles at the user's discretion.
+
+        angle_phi : The angle of the rigid body in respect to the x-axis
+        angle_theta : The angle of the rigid body in respect to the y-axis 
+        angle_psi : The angle of the rigid body in respect to the z-axis
+
+        '''
 
 
         self.omega_phi:   float = 0
         self.angle_theta: float = 0 
         self.angle_psi:   float = 0
+        '''
+        These are the angular velocities for the euler angles above. Unlike the euler angles themselves, the angular velocities help us 
+        update the actual quaternion itself by using an haddard (element by element) vector product between the omega (angular velo.) vector 
+        and the current quaternion vector. This is the means by which we update / approximate the integral of the quaternion over time.
+
+        '''
 
 
         self.q_w : float = 0
         self.q_x : float = 0
         self.q_y : float = 0
         self.q_z : float = 0
+        '''
+        Components of the quaternion. Represent the orientation and the like. Shouldn't need too much extra explanation.
+
+        '''
 
 
         self.axes_x: float = 0
@@ -47,9 +66,6 @@ class Quaternion:
 
 
         self.linked_gyro = linked_gyro
-
-        self.last_read_ts = 0
-
 
 
 
@@ -106,6 +122,7 @@ class Quaternion:
 
         return None 
     
+
 
 
 
@@ -174,3 +191,7 @@ class Quaternion:
 
 
         return converted_eulers 
+    
+
+
+
