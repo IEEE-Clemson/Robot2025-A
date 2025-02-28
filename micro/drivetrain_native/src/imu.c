@@ -74,12 +74,12 @@ static const uint8_t PWR_CTRL        = 0x7D;
 // Accelerometer
 static const uint8_t ACC_CONF        = 0x40;
 static const uint8_t ACC_RANGE       = 0x41;
-static const uint8_t ACC_X_7_0       = 0x0C;
-static const uint8_t ACC_X_15_8      = 0x0D;
-static const uint8_t ACC_Y_7_0       = 0x0E;
-static const uint8_t ACC_Y_15_8      = 0x0F;
-static const uint8_t ACC_Z_7_0       = 0x10;
-static const uint8_t ACC_Z_15_8      = 0x11;
+static const uint8_t ACC_X_7_0       = 0x08;
+static const uint8_t ACC_X_15_8      = 0x09;
+static const uint8_t ACC_Y_7_0       = 0x0A;
+static const uint8_t ACC_Y_15_8      = 0x0B;
+static const uint8_t ACC_Z_7_0       = 0x0C;
+static const uint8_t ACC_Z_15_8      = 0x0D;
 
 // Gyroscope
 static const uint8_t GYR_CONF        = 0x42;
@@ -204,4 +204,21 @@ void bno_get_raw_gyr_data(struct BNO055* bmi, int16_t *gx, int16_t* gy, int16_t*
     gz0 = read_register(bmi, GYR_Z_7_0);
     gz1 = read_register(bmi, GYR_Z_15_8);
     *gz = (gz1 << 8) | gz0;
+}
+
+void bno_get_raw_acc_data(struct BNO055* bmi, int16_t *ax, int16_t* ay, int16_t*az)
+{
+    uint16_t ax1, ax0, ay1, ay0, az1, az0;
+    ax0 = read_register(bmi, ACC_X_7_0);
+    ax1 = read_register(bmi, ACC_X_15_8);
+    *ax = (ax1 << 8) | ax0;
+
+
+    ay0 = read_register(bmi, ACC_Y_7_0);
+    ay1 = read_register(bmi, ACC_Y_15_8);
+    *ay = (ay1 << 8) | ay0;
+
+    az0 = read_register(bmi, ACC_Z_7_0);
+    az1 = read_register(bmi, ACC_Z_15_8);
+    *az = (az1 << 8) | az0;
 }

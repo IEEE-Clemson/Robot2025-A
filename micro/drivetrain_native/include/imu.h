@@ -21,6 +21,7 @@ struct BNO055 {
 
 void bno_init(struct BNO055 *bno, i2c_inst_t *i2c, uint8_t sda, uint8_t scl);
 void bno_get_raw_gyr_data(struct BNO055* bno, int16_t *gx, int16_t* gy, int16_t* gz);
+void bno_get_raw_acc_data(struct BNO055* bmi, int16_t *ax, int16_t* ay, int16_t*az);
 
 #ifdef __cplusplus
 }

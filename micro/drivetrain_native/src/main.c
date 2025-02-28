@@ -15,6 +15,9 @@
 #include "pid_control.h"
 #include "imu.h"
 #include "comm.h"
+#include "madgwick_filter.h"
+
+struct quaternion q = {0, 0, 0, 1};
 
 // Buff written to by i2c
 static uint8_t i2c_mem[BUFF_SIZE];
@@ -143,9 +146,8 @@ int main() {
     gpio_set_dir(LED_PIN_PICO, true);
 #endif
 
-    sleep_ms(4000);
+    // sleep_ms(4000);
 
-    printf("Starting\n");
     
     setup_slave();
     init_motors();
@@ -160,9 +162,25 @@ int main() {
         pi_motor_update(&motor_bl, dt);
         pi_motor_update(&motor_br, dt);
         
-        int16_t ax, ay, az;
-        bno_get_raw_gyr_data(&imu, &ax, &ay, &az);
+        float gx, gy, gz, ax, ay, az;
+        int16_t gxraw, gyraw, gzraw, axraw, ayraw, azraw;
+        bno_get_raw_gyr_data(&imu, &gxraw, &gyraw, &gzraw);
+
+        bno_get_raw_acc_data(&imu, &axraw, &ayraw, &azraw);
         //int time = get_sensor_time(&imu);
+        imu_filter(&q, dt, axraw, ayraw, azraw, gxraw, gyraw, gzraw);
+        
+        gx = (float)gxraw * PI / (16*180);
+        gy = (float)gyraw * PI / (16*180);
+        gz = (float)gyraw  *PI / (16*180);
+
+        ax = (float)axraw  / 100;
+        ay = (float)ayraw  / 100;
+        az = (float)azraw / 100;
+
+        float roll, pitch, yaw;
+        eulerAngles(q, &roll, &pitch, &yaw);
+        
 
 
         update_local_vel();
@@ -171,10 +189,15 @@ int main() {
         
         busy_wait_until(time_to_sleep);
 
+
+
         // Blink led for heartbeat
         i = (i + 1) % 100;
         if(i == 0) {
-            printf("Heartbeat %f %f %f\n", ax, ay, az);
+            printf("Gyro Data: %f %f %f\n", gx, gy, gz);
+            printf("Acc Data: %f %f %f\n", ax, ay, az);
+            printf("Rotation: %f %f %f\n", roll, pitch, yaw);    
+            
             led = !led;
 #ifdef PICO_W
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
