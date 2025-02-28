@@ -17,8 +17,8 @@ id_to_pose = {
     4: Pose3d(0, 0.572, TAG_HEIGHT, Rotation3d(0, 0, pi )), # West wall
 
     5: Pose3d(0.812, 1.143, TAG_HEIGHT, Rotation3d(0, 0, pi / 2)), # North wall
-    6: Pose3d(1.050, 0, TAG_HEIGHT, Rotation3d(0, 0, pi/2)), # South wall
-    7: Pose3d(2.354, 0.572, TAG_HEIGHT, Rotation3d(0, 0, -pi)), # East wall
+    6: Pose3d(1.050, 0, TAG_HEIGHT, Rotation3d(0, 0, -pi/2)), # South wall
+    7: Pose3d(2.354, 0.572, TAG_HEIGHT, Rotation3d(0, 0, 0)), # East wall
 }
 
 class Vision(Subsystem):
@@ -55,8 +55,10 @@ class Vision(Subsystem):
                 robot_in_field.translation().y,
                 robot_in_field.rotation().Z()
             )
-            self.cur_pose2d.append(pose2d)
-            #print(robot_in_field.translation())
+            x = pose2d.translation().x
+            y = pose2d.translation().y
+            if x > 0 and x < 2.1 and y > 0 and y < 2.1:
+                self.cur_pose2d.append(pose2d)
             
-            if self.add_pose2d_callback is not None:
-                self.add_pose2d_callback(pose2d, t)
+                if self.add_pose2d_callback is not None:
+                    self.add_pose2d_callback(pose2d, t)

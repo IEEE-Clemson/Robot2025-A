@@ -45,8 +45,8 @@ def get_april_tag_poses(config: VisionConfig, image: np.ndarray, detector: Detec
         rotation = swap_xy @ detection.pose_R @ np.linalg.inv(swap_xy)
         # Convert to pose so that it is easier to work with
         tag_in_cam = Transform3d(Translation3d(translation), Rotation3d(rotation))
-
-        poses.append((detection.tag_id, tag_in_cam))
+        if detection.pose_err < 1e-7:
+            poses.append((detection.tag_id, tag_in_cam))
     return np.array(poses)
 
 
@@ -59,6 +59,7 @@ def apriltag_detector_main(config: VisionConfig, queue: Queue):
     cap.set(cv2.CAP_PROP_FPS, 100)
     cap.set(cv2.CAP_PROP_EXPOSURE, 200)
     cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+    cap.set(cv2.CAP_PROP_EXPOSURE, 500)
     
     detector = Detector(families="tag36h11")
     n = 0
@@ -68,16 +69,19 @@ def apriltag_detector_main(config: VisionConfig, queue: Queue):
         if image is None:
             continue
         
-        tags = get_april_tag_poses(config, image, detector)
-        for id, pose in tags:
-            res = ApriltagResult()
-            res.id = id
-            res.pose = pose.toMatrix()
-            res.n = n
-            res.t = t
+        try:
+            tags = get_april_tag_poses(config, image, detector)
+            for id, pose in tags:
+                res = ApriltagResult()
+                res.id = id
+                res.pose = pose.toMatrix()
+                res.n = n
+                res.t = t
 
-            queue.put_nowait(res)
+                queue.put_nowait(res)
 
-        if config.should_display:
-            cv2.imshow("Camera", image)
-            cv2.waitKey(1)
+            if config.should_display:
+                cv2.imshow("Camera", image)
+                cv2.waitKey(1)
+        except Exception as e:
+            print("Exception in camera process: ", e)
