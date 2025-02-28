@@ -32,7 +32,7 @@ class Drivetrain(Subsystem):
         self._hal = hal
 
         self._x_odom = np.array([0.794, 5.5*0.0254])
-        self._theta_odom = 0 #math.pi/2
+        self._theta_odom = -math.pi/2
 
         self._target_vx = np.array([0, 0])
         self._target_omega = 0
@@ -46,8 +46,9 @@ class Drivetrain(Subsystem):
 
         self.slew_rate_xy = 0.75
         self.slew_rate_theta = 3.0
-
-        self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.05, 0.05, 0.05])
+        self.max_speed = 0.1
+        self.max_omega = 0.1
+        self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.1, 0.1, 0.1])
 
         # Config for trajectory controllers
         rx = 0.052
@@ -70,8 +71,8 @@ class Drivetrain(Subsystem):
         self.robot_config.isHolonomic = True
 
         self.trajectory_controller = HolonomicDriveController(
-            PIDController(1, 0.5, 0),
-            PIDController(1, 0.5, 0),
+            PIDController(3, 0.5, 0),
+            PIDController(3, 0.5, 0),
             ProfiledPIDControllerRadians(
                 4, 0.7, 0, TrapezoidProfileRadians.Constraints(3.14, 6.0)
             ),
@@ -137,9 +138,11 @@ class Drivetrain(Subsystem):
                 else -self.slew_rate_theta * dt
             )
 
+        t = time.time()
         vx, vy, self._omega = self._hal.set_target_wheel_velocities(
             self._cur_ref_x_vel, self._cur_ref_y_vel, self._cur_ref_omega
         )
+        print("commlib", time.time() - t)
         self._vx_local = np.array([vx, vy])
 
         self.compute_odom(dt)
@@ -148,6 +151,12 @@ class Drivetrain(Subsystem):
         )
 
     def drive_raw_local(self, vx, vy, omega):
+        if abs(vx) > self.max_speed:
+            vx = math.copysign(self.max_speed, vx)
+        if abs(vy) > self.max_speed:
+            vy = math.copysign(self.max_speed, vy)
+        if abs(omega) > self.max_omega:
+            omega = math.copysign(self.max_omega, omega)
         self._target_vx = np.array([vx, vy])
         self._target_omega = omega
 

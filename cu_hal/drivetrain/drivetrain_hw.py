@@ -11,12 +11,16 @@ class DrivetrainHW(DrivetrainHAL):
         self.__comm = comm
 
     def get_local_velocity(self) -> Tuple[float, float, float]:
-        res, local_vx, local_vy, local_omega = self.__comm.send('NAVIGATION', 'STATUS')
+        self.__comm.send('NAVIGATION', 'STATUS')
+        msg = self.__comm.receive()
+        res, local_vx, local_vy, local_omega = msg.arguments
         return local_vx, local_vy, local_omega
 
     def set_target_wheel_velocities(self, vx: float, vy: float, omega: float) -> Tuple[float, float, float]:
-        res, local_vx, local_vy, local_omega = self.__comm.send('NAVIGATION', 'MOVE FORWARD', vx, vy, omega)
-        return local_vx, local_vy, local_omega
+        self.__comm.send('NAVIGATION', 'MOVE FORWARD', float(vx), float(vy), float(omega))
+        msg = self.__comm.receive()
+        res, local_vx, local_vy, local_omega = msg.arguments
+        return  local_vx, local_vy, local_omega
     
     
     
