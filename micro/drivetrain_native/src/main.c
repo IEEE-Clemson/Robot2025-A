@@ -196,9 +196,9 @@ int main() {
         py = vy*dt;
         pz = vz*dt;
 
-        px *= 10000;
-        py *= 10000;
-        pz *= 10000;
+        px *= 100000;
+        py *= 100000;
+        pz *= 100000;
 
         avgy += ay;
 
