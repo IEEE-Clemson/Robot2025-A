@@ -15,6 +15,7 @@ FRAME_WIDTH = 320
 FOCAL_LENGTH = 2.8 # mm
 SENSOR_WIDTH = 3.99
 PIXEL_SIZE = SENSOR_WIDTH / FRAME_WIDTH
+TAG_SIZE = 50
 
 while True:
     clock.tick()
@@ -25,9 +26,13 @@ while True:
 
         offset_x_mm = (center_x - (FRAME_WIDTH / 2)) * PIXEL_SIZE
         horizontal_angle = math.degrees(math.atan(offset_x_mm / FOCAL_LENGTH))
+        scale = TAG_SIZE/tag.w
+
+        distance = abs(tag.z_translation * scale)
 
         img.draw_rectangle(tag.rect, color = (0, 0, 255))
         img.draw_cross(tag.cx, tag.cy, color = (0, 255, 0))
         print(f"Tag ID: {tag.id}")
         print("Angle to Tag Center:", horizontal_angle)
-    print(clock.fps())
+        print("Distance to Camera: " , distance)
+    # print(clock.fps())
