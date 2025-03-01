@@ -4,24 +4,15 @@
 import math
 from time import time
 import commands2
-from pathplannerlib.commands import PIDConstants
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds
-from wpimath.controller import (
-    HolonomicDriveController,
-    PIDController,
-    ProfiledPIDControllerRadians,
-)
-from wpimath.trajectory import (
-    TrapezoidProfileRadians,
-)
 
+from pathplannerlib.commands import PIDConstants
 from pathplannerlib.path import (
     PathPlannerPath,
     PathConstraints,
     GoalEndState,
     IdealStartingState,
-    RotationTarget,
 )
 
 from pathplannerlib.controller import PPHolonomicDriveController
@@ -59,7 +50,7 @@ class TrapezoidalMove(commands2.Command):
         end = Pose2d(self._x, self._y, rot)
         waypoints = PathPlannerPath.waypointsFromPoses([start, end])
         constraints = PathConstraints(
-            0.1, 0.1, 2 * math.pi, 2 * math.pi, unlimited=False
+            0.3, 0.3, 2 * math.pi, 2 * math.pi, unlimited=False
         )
         path = PathPlannerPath(
             waypoints,

@@ -52,7 +52,7 @@ def update():
 drive_command = commands2.cmd.run(update, drivetrain).ignoringDisable(True)
 drivetrain.setDefaultCommand(drive_command)
 
-move_pose_command = TrapezoidalMove(drivetrain, 0.794, 0.58, -pi / 2) \
+move_pose_command = TrapezoidalMove(drivetrain, 0.794, 0.58, 0) \
                 .andThen(TrapezoidalMove(drivetrain, 1.9, 0.58, 0)) \
                 .andThen(TrapezoidalMove(drivetrain, 0.7, 0.58, 0)) \
                 .andThen(TrapezoidalMove(drivetrain, 0.7, 1.2,  0)) \
@@ -76,7 +76,6 @@ def update_thread():
 
 
 class Window(QWidget):
-
     def update_monitors(self):
         cur_x_vel, cur_y_vel, cur_omega = drivetrain.get_local_vel()
         odom_x, odom_y, odom_theta = (
