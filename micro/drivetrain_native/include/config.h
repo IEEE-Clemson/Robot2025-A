@@ -1,4 +1,4 @@
-#ifndef _CONFIG_H_
+#ifndef _CONFIG_H_zA
 #define _CONFIG_H_
 
 #ifdef __cplusplus
@@ -20,8 +20,8 @@ static const uint FREQ = 200;
 static const uint I2C_SLAVE_ADDRESS = 0x41;
 static const uint I2C_BAUDRATE = 400000; // 400 kHz
 
-static const uint I2C_SLAVE_SDA_PIN = 4;
-static const uint I2C_SLAVE_SCL_PIN = 5;
+static const uint I2C_SLAVE_SDA_PIN = 20;
+static const uint I2C_SLAVE_SCL_PIN = 21;
 
 // IMU config
 static const uint8_t IMU_SDA_PIN = 26;
@@ -39,9 +39,9 @@ static const int FL_PIN_A = 11;
 // Front left encoder B channel pin
 static const int FL_PIN_B = 10;
 // Front left motor pwm pin
-static const int FL_PIN_PWM = 2;
+static const int FL_PIN_PWM = 6;
 // Front left motor reverse pin
-static const int FL_PIN_DIR = 6;
+static const int FL_PIN_DIR = 2;
 // Front left motor inverted
 static const bool FL_INVERTED = false;
 
@@ -50,9 +50,9 @@ static const int FR_PIN_A = 15;
 // Front right encoder B channel pin
 static const int FR_PIN_B = 14;
 // Front right motor pwm pin
-static const int FR_PIN_PWM = 4;
+static const int FR_PIN_PWM = 8;
 // Front right motor reverse pin
-static const int FR_PIN_DIR = 8;
+static const int FR_PIN_DIR = 4;
 // Front right motor reverse pin
 static const bool FR_INVERTED = true;
 
@@ -61,9 +61,9 @@ static const int BL_PIN_A = 13;
 // Back left encoder B channel pin
 static const int BL_PIN_B = 12;
 // Back left motor pwm pin
-static const int BL_PIN_PWM = 3;
+static const int BL_PIN_PWM = 7;
 // Back left motor reverse pin
-static const int BL_PIN_DIR = 7;
+static const int BL_PIN_DIR = 3;
 // Back left motor inverted
 static const bool BL_INVERTED = false;
 
@@ -72,9 +72,9 @@ static const int BR_PIN_A = 17;
 // Back right encoder B channel pin
 static const int BR_PIN_B = 16;
 // Back right motor pwm pin
-static const int BR_PIN_PWM = 5;
+static const int BR_PIN_PWM = 9;
 // Back right motor reverse pin
-static const int BR_PIN_DIR = 9;
+static const int BR_PIN_DIR = 5;
 // Back right motor inverted
 static const bool BR_INVERTED = true;
 

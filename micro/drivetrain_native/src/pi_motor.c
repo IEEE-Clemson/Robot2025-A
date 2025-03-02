@@ -2,6 +2,7 @@
 
 #include <hardware/pwm.h>
 #include <math.h>
+#include <util.h>
 
 int pi_motor_init(struct PIMotor *motor, 
                   struct PIDParams *pid_params,
@@ -30,6 +31,7 @@ int pi_motor_init(struct PIMotor *motor,
     motor->pin_r = pin_r;
     motor->invert_motor = inverted;
     motor->ff = PI_MOTOR_DEFAULT_FEED_FORWARD;
+    motor->use_pi = true;
 
     motor->target_vel = 0.0f;
     motor->out = 0.0f;
@@ -107,7 +109,7 @@ void pi_motor_update(struct PIMotor *motor, float dt)
     motor->cur_vel = vel;
 
     pid_controller_update(&motor->pid, vel, dt);
-    motor->out = motor->pid.output + vel * motor->ff;
+    motor->out = clamp(motor->pid.output + vel * motor->ff, -1.0, 1.0);
     if(motor->use_pi)
         pi_motor_drive_raw(motor, motor->out);
 }
@@ -139,6 +141,7 @@ int pi_motor_mod10a_init(struct PIMotorMod10A *motor,
     motor->pin_dir = pin_dir;
     motor->invert_motor = inverted;
     motor->ff = PI_MOTOR_DEFAULT_FEED_FORWARD;
+    motor->use_pi = true;
 
     motor->target_vel = 0.0f;
     motor->out = 0.0f;
@@ -154,8 +157,9 @@ int pi_motor_mod10a_init(struct PIMotorMod10A *motor,
     motor->cprad = 2800.0f / (2 * 3.141592);
     // Initialize pwm pins
     gpio_set_function(pin_pwm, GPIO_FUNC_PWM);
+    gpio_init(pin_dir);
     gpio_set_dir(pin_dir, true);
-    
+
     config = pwm_get_default_config();
     pwm_config_set_clkdiv(&config, 4.0f);
     pwm_init(slice_pwm, &config, true);
@@ -180,12 +184,11 @@ void pi_motor_mod10a_drive_raw(struct PIMotorMod10A *motor, float percent_out)
         pwm = 0;
     } else if(fabs(percent_out) > deadband) {
         pwm = (uint16_t)(fabs(percent_out) * UINT16_MAX);
-        dir = percent_out > 0;
+        dir = percent_out < 0.0f;
     } else {
         pwm = 0;
         dir = 0;
     }
-
     pwm_set_gpio_level(motor->pin_pwm, pwm);
     gpio_put(motor->pin_dir, dir);
 }
@@ -199,7 +202,7 @@ void pi_motor_mod10a_update(struct PIMotorMod10A *motor, float dt)
 
     motor->pid.setpoint = motor->setpoint;
     cur_count = encoder_get_count(&motor->encoder);
-       if(motor->invert_motor)
+    if(motor->invert_motor)
         cur_count *= -1;
     
     raw_vel = (cur_count - motor->prev_count) / dt;
@@ -213,7 +216,7 @@ void pi_motor_mod10a_update(struct PIMotorMod10A *motor, float dt)
     motor->cur_vel = vel;
 
     pid_controller_update(&motor->pid, vel, dt);
-    motor->out = motor->pid.output + vel * motor->ff;
+    motor->out = clamp(motor->pid.output + vel * motor->ff, -0.995, 0.995);
     if(motor->use_pi)
         pi_motor_mod10a_drive_raw(motor, motor->out);
 }
