@@ -16,6 +16,7 @@
 #include "imu.h"
 #include "comm.h"
 #include "madgwick_filter.h"
+#include <stdlib.h>
 
 struct quaternion q = {0, 0, 0, 1};
 
@@ -154,6 +155,9 @@ int main() {
     bno_init(&imu, IMU_I2C_INST, IMU_SDA_PIN, IMU_SCL_PIN);
     
     dt = 1.0f / FREQ;
+    
+    float avgx = 0, avgy = 0, avgz = 0;
+    int count = 1;
     while(true) {
         time = get_absolute_time();
         time_to_sleep = delayed_by_ms(time, 1000 / FREQ);
@@ -177,12 +181,36 @@ int main() {
         ax = (float)axraw  / 100;
         ay = (float)ayraw  / 100;
         az = (float)azraw / 100;
+        az -= 9.81; // account for gravity
+
+        float px, py, pz;
+        float vx = 0, vy = 0, vz = 0;
+
+        avgx += ax;
+
+        vx = ax*dt + vx;
+        vy = ay*dt + vy;
+        vz = az*dt + vz;
+
+        px = vx*dt;
+        py = vy*dt;
+        pz = vz*dt;
+
+        px *= 100000;
+        py *= 100000;
+        pz *= 100000;
+
+        avgy += ay;
+
+
+        avgz += az;
+
+
+        count++; 
 
         float roll, pitch, yaw;
         eulerAngles(q, &roll, &pitch, &yaw);
         
-
-
         update_local_vel();
         update_target_vel();
         //mem->theta = (int16_t)(imu_get_z_radians(&imu) / (2 * PI) * INT16_MAX);
@@ -196,8 +224,10 @@ int main() {
         if(i == 0) {
             printf("Gyro Data: %f %f %f\n", gx, gy, gz);
             printf("Acc Data: %f %f %f\n", ax, ay, az);
+            printf("Avg Acce: %f %f %f\n", avgx/count, avgy/count, avgz/count);
             printf("Rotation: %f %f %f\n", roll, pitch, yaw);    
-            
+            printf("Position Data: %f %f %f\n", px, py, pz);
+
             led = !led;
 #ifdef PICO_W
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
