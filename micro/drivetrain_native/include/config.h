@@ -35,46 +35,46 @@ static const float MAX_OMEGA = 8.0f;
 // MOTOR PIN CONFIG
 // These should be constant and not configurable from host
 // Front left encoder A channel pin
-static const int FL_PIN_A = 15;
+static const int FL_PIN_A = 11;
 // Front left encoder B channel pin
-static const int FL_PIN_B = 14;
-// Front left motor forward pin
-static const int FL_PIN_F = 6;
+static const int FL_PIN_B = 10;
+// Front left motor pwm pin
+static const int FL_PIN_PWM = 2;
 // Front left motor reverse pin
-static const int FL_PIN_R = 7;
+static const int FL_PIN_DIR = 6;
 // Front left motor inverted
 static const bool FL_INVERTED = false;
 
 // Front right encoder A channel pin
-static const int FR_PIN_A = 19;
+static const int FR_PIN_A = 15;
 // Front right encoder B channel pin
-static const int FR_PIN_B = 18;
-// Front right motor forward pin
-static const int FR_PIN_F = 10;
+static const int FR_PIN_B = 14;
+// Front right motor pwm pin
+static const int FR_PIN_PWM = 4;
 // Front right motor reverse pin
-static const int FR_PIN_R = 11;
+static const int FR_PIN_DIR = 8;
 // Front right motor reverse pin
 static const bool FR_INVERTED = true;
 
 // Back left encoder A channel pin
-static const int BL_PIN_A = 17;
+static const int BL_PIN_A = 13;
 // Back left encoder B channel pin
-static const int BL_PIN_B = 16;
-// Back left motor forward pin
-static const int BL_PIN_F = 9;
+static const int BL_PIN_B = 12;
+// Back left motor pwm pin
+static const int BL_PIN_PWM = 3;
 // Back left motor reverse pin
-static const int BL_PIN_R = 8;
+static const int BL_PIN_DIR = 7;
 // Back left motor inverted
 static const bool BL_INVERTED = false;
 
 // Back right encoder A channel pin
-static const int BR_PIN_A = 21;
+static const int BR_PIN_A = 17;
 // Back right encoder B channel pin
-static const int BR_PIN_B = 20;
-// Back right motor forward pin
-static const int BR_PIN_F = 13;
+static const int BR_PIN_B = 16;
+// Back right motor pwm pin
+static const int BR_PIN_PWM = 5;
 // Back right motor reverse pin
-static const int BR_PIN_R = 12;
+static const int BR_PIN_DIR = 9;
 // Back right motor inverted
 static const bool BR_INVERTED = true;
 

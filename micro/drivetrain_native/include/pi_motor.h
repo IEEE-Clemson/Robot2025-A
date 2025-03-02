@@ -31,6 +31,26 @@ struct PIMotor {
     int ma_index;
 };
 
+struct PIMotorMod10A {
+    struct Encoder encoder;
+    struct PIDController pid;
+    uint pin_dir;
+    uint pin_pwm;
+    bool invert_motor;
+
+    float setpoint;
+    float ff;
+    float cprad;
+    float target_vel;
+    float cur_vel;
+    float out;
+    bool use_pi;
+
+    int prev_count;
+    float ma_buff[MA_SIZE];
+    int ma_index;
+};
+
 int pi_motor_init(struct PIMotor *motor, 
                   struct PIDParams *pid_params,
                   pio_hw_t *pio,
@@ -43,6 +63,19 @@ int pi_motor_init(struct PIMotor *motor,
 
 void pi_motor_drive_raw(struct PIMotor* motor, float percent_out);
 void pi_motor_update(struct PIMotor* motor, float dt);
+
+int pi_motor_mod10a_init(struct PIMotorMod10A *motor, 
+    struct PIDParams *pid_params,
+    pio_hw_t *pio,
+    uint sm,
+    uint a,
+    uint b, 
+    uint pin_dir,
+    uint pin_pwm,
+    bool inverted);
+
+void pi_motor_mod10a_drive_raw(struct PIMotorMod10A* motor, float percent_out);
+void pi_motor_mod10a_update(struct PIMotorMod10A* motor, float dt);
 
 #ifdef __cplusplus
 }
