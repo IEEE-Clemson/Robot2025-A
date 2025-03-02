@@ -20,8 +20,8 @@ class PIMotor:
         sm_id: int,
         enc_pin_a: int,
         enc_pin_b: int,
-        motor_pin_f: int,
-        motor_pin_r: int,
+        motor_pin: int,
+        direction_pin: int
     ):
         """Initializes the PI controlled motor
 
@@ -29,8 +29,8 @@ class PIMotor:
             sm_id (int): ID of the state machine, must be unique
             enc_pin_a (int): GPIO pin for A channel
             enc_pin_b (int): GPIO pin for B channel
-            motor_pin_f (int): GPIO pin for forward PWM
-            motor_pin_r (int): GPIO pin for reverse PWM
+            motor_pin (int): GPIO pin for PWM
+            reverse_pin (int): GPIO pin giving direction for motor_pin
         """
         self.cprad = 2800 / (2 * pi)
         "Encoder counts per rotation"
@@ -53,10 +53,11 @@ class PIMotor:
         self.__ma_index = 0
 
         self.__encoder = Encoder(sm_id, enc_pin_a, enc_pin_b)
-        self.__pwm_f = PWM(Pin(motor_pin_f))
-        self.__pwm_f.freq(10000)
-        self.__pwm_r = PWM(Pin(motor_pin_r))
-        self.__pwm_r.freq(10000)
+        self.__pwm = PWM(Pin(motor_pin))
+        self.__pwm.freq(10000)
+        self.__direction = Pin(direction_pin, Pin.OUT)
+        # self.__pwm_r = PWM(Pin(motor_pin_r))
+        # self.__pwm_r.freq(10000)
 
         self.__prev_count = self.__encoder.get_count()
         self.use_pi = True
@@ -98,21 +99,20 @@ class PIMotor:
             percent_out *= -1
 
         deadband = 0.05
-        out_f = 0
-        out_r = 0
+        out = 0
         # SAFETY: don't invert motor direction without stopping first
         if abs(self.cur_vel) > 0.5 and (
             (self.cur_vel > 0 and percent_out < 0)
             or (self.cur_vel < 0 and percent_out > 0)
         ):
-            out_f = 0
-            out_r = 0
+            out = 0
         if percent_out > deadband:
-            out_f = int(65536 * percent_out)
+            out = int(65536 * percent_out)
+            self.__direction.off() # off for backwards
         elif percent_out < -deadband:
-            out_r = int(65536 * -percent_out)
-        self.__pwm_f.duty_u16(out_f)
-        self.__pwm_r.duty_u16(out_r)
+            out = int(65536 * -percent_out)
+            self.__direction.on() # on for forwards
+        self.__pwm.duty_u16(out)
 
     @property
     def p(self) -> float:

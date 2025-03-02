@@ -40,16 +40,16 @@ en4.on()
 
 led = Pin("LED")  # Heartbeat LED
 motor_fl = PIMotor(
-    0, config.FL_PIN_A, config.FL_PIN_B, config.FL_PIN_F, config.FL_PIN_R
+    0, config.FL_PIN_A, config.FL_PIN_B, config.FL_PWM_PIN, config.FL_DIR_PIN
 )
 motor_fr = PIMotor(
-    1, config.FR_PIN_A, config.FR_PIN_B, config.FR_PIN_F, config.FR_PIN_R
+    1, config.FR_PIN_A, config.FR_PIN_B, config.FR_PWM_PIN, config.FR_DIR_PIN
 )
 motor_bl = PIMotor(
-    2, config.BL_PIN_A, config.BL_PIN_B, config.BL_PIN_F, config.BL_PIN_R
+    2, config.BL_PIN_A, config.BL_PIN_B, config.BL_PWM_PIN, config.BL_DIR_PIN
 )
 motor_br = PIMotor(
-    3, config.BR_PIN_A, config.BR_PIN_B, config.BR_PIN_F, config.BR_PIN_R
+    3, config.BR_PIN_A, config.BR_PIN_B, config.BR_PWM_PIN, config.BR_DIR_PIN
 )
 motor_fl.invert_motor = config.FL_INVERTED
 motor_fr.invert_motor = config.FR_INVERTED
