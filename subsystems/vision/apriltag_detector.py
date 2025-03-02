@@ -45,7 +45,7 @@ def get_april_tag_poses(config: VisionConfig, image: np.ndarray, detector: Detec
         rotation = swap_xy @ detection.pose_R @ np.linalg.inv(swap_xy)
         # Convert to pose so that it is easier to work with
         tag_in_cam = Transform3d(Translation3d(translation), Rotation3d(rotation))
-        if detection.pose_err < 1e-7:
+        if detection.pose_err < 1e-7 and np.linalg.norm(detection.pose_t) < 1.0:
             poses.append((detection.tag_id, tag_in_cam))
     return np.array(poses)
 

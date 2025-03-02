@@ -32,9 +32,10 @@ class TrapezoidalMove(commands2.Command):
         self._drivetrain = drivetrain
         self._trajectory = None
         self._start_time = time()
+        pid_consts_vxy = PIDConstants(4, 0.3, 0, 1)
 
         self._trajectory_controller = PPHolonomicDriveController(
-            PIDConstants(0.5, 1.0, 0, 10),
+            pid_consts_vxy,
             PIDConstants(4, 0.7, 0, 10),
         )
 
@@ -86,15 +87,16 @@ class TrapezoidalMove(commands2.Command):
             return False
         cur_time = time() - self._start_time
         pose_diff = Pose2d(self._x, self._y, self._theta) - self._drivetrain.pose()
+        print("diff", pose_diff.translation())
 
         xy_tol = 0.01
         theta_tol = 0.1
         vx, vy, omega = self._drivetrain.get_local_vel()
         return (
             cur_time > self._trajectory.getTotalTimeSeconds()
-            and pose_diff.x < xy_tol
-            and pose_diff.y < xy_tol
-            and pose_diff.rotation().radians() < theta_tol
+            and abs(pose_diff.x) < xy_tol
+            and abs(pose_diff.y) < xy_tol
+            and abs(pose_diff.rotation().radians()) < theta_tol
             and math.hypot(vx, vy) < 0.2
         )
 

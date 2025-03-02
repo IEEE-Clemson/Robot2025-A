@@ -142,7 +142,6 @@ class Drivetrain(Subsystem):
         vx, vy, self._omega = self._hal.set_target_wheel_velocities(
             self._cur_ref_x_vel, self._cur_ref_y_vel, self._cur_ref_omega
         )
-        print("commlib", time.time() - t)
         self._vx_local = np.array([vx, vy])
 
         self.compute_odom(dt)
