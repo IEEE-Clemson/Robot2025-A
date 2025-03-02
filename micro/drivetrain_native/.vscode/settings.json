@@ -19,6 +19,7 @@
         "adc.h": "c",
         "i2c_slave.h": "c",
         "functional": "c",
-        "cstdint": "cpp"
+        "cstdint": "cpp",
+        "pwm.h": "c"
     }
 }

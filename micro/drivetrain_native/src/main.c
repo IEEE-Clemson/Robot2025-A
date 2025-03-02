@@ -29,7 +29,7 @@ bool i2c_addr_written;
 struct I2CMemLayout *mem = (struct I2CMemLayout*)(i2c_mem);
 
 struct PIDParams pid_params;
-struct PIMotor motor_fl, motor_fr, motor_bl, motor_br;
+struct PIMotorMod10A motor_fl, motor_fr, motor_bl, motor_br;
 struct BNO055 imu = {};
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
@@ -82,10 +82,10 @@ static void setup_slave() {
 static void init_motors() {
     encoder_init_pio(pio0);
     pid_create_params(&pid_params, 0.1f, 0.1f, 0.0f);
-    pi_motor_init(&motor_fl, &pid_params, pio0, 0, FL_PIN_A, FL_PIN_B, FL_PIN_F, FL_PIN_R, FL_INVERTED);
-    pi_motor_init(&motor_fr, &pid_params, pio0, 1, FR_PIN_A, FR_PIN_B, FR_PIN_F, FR_PIN_R, FR_INVERTED);
-    pi_motor_init(&motor_bl, &pid_params, pio0, 2, BL_PIN_A, BL_PIN_B, BL_PIN_F, BL_PIN_R, BL_INVERTED);
-    pi_motor_init(&motor_br, &pid_params, pio0, 3, BR_PIN_A, BR_PIN_B, BR_PIN_F, BR_PIN_R, BR_INVERTED);
+    pi_motor_mod10a_init(&motor_fl, &pid_params, pio0, 0, FL_PIN_A, FL_PIN_B, FL_PIN_DIR, FL_PIN_PWM, FL_INVERTED);
+    pi_motor_mod10a_init(&motor_fr, &pid_params, pio0, 1, FR_PIN_A, FR_PIN_B, FR_PIN_DIR, FR_PIN_PWM, FR_INVERTED);
+    pi_motor_mod10a_init(&motor_bl, &pid_params, pio0, 2, BL_PIN_A, BL_PIN_B, BL_PIN_DIR, BL_PIN_PWM, BL_INVERTED);
+    pi_motor_mod10a_init(&motor_br, &pid_params, pio0, 3, BR_PIN_A, BR_PIN_B, BR_PIN_DIR, BR_PIN_PWM, BR_INVERTED);
 }
 
 static void update_local_vel() {
@@ -151,6 +151,7 @@ int main() {
 
     
     setup_slave();
+    printf("Init motors\n");
     init_motors();
     bno_init(&imu, IMU_I2C_INST, IMU_SDA_PIN, IMU_SCL_PIN);
     
@@ -161,10 +162,10 @@ int main() {
     while(true) {
         time = get_absolute_time();
         time_to_sleep = delayed_by_ms(time, 1000 / FREQ);
-        pi_motor_update(&motor_fl, dt);
-        pi_motor_update(&motor_fr, dt);
-        pi_motor_update(&motor_bl, dt);
-        pi_motor_update(&motor_br, dt);
+        pi_motor_mod10a_update(&motor_fl, dt);
+        pi_motor_mod10a_update(&motor_fr, dt);
+        pi_motor_mod10a_update(&motor_bl, dt);
+        pi_motor_mod10a_update(&motor_br, dt);
         
         float gx, gy, gz, ax, ay, az;
         int16_t gxraw, gyraw, gzraw, axraw, ayraw, azraw;
@@ -222,12 +223,14 @@ int main() {
         // Blink led for heartbeat
         i = (i + 1) % 100;
         if(i == 0) {
-            printf("Gyro Data: %f %f %f\n", gx, gy, gz);
-            printf("Acc Data: %f %f %f\n", ax, ay, az);
-            printf("Avg Acce: %f %f %f\n", avgx/count, avgy/count, avgz/count);
-            printf("Rotation: %f %f %f\n", roll, pitch, yaw);    
-            printf("Position Data: %f %f %f\n", px, py, pz);
-
+            //printf("Gyro Data: %f %f %f\n", gx, gy, gz);
+            //printf("Acc Data: %f %f %f\n", ax, ay, az);
+            //printf("Avg Acce: %f %f %f\n", avgx/count, avgy/count, avgz/count);
+            //printf("Rotation: %f %f %f\n", roll, pitch, yaw);    
+            //printf("Position Data: %f %f %f\n", px, py, pz);
+            printf("Encoder Count: %d %d %d %d\n", encoder_get_count(&motor_fl.encoder), encoder_get_count(&motor_bl.encoder), encoder_get_count(&motor_fr.encoder), encoder_get_count(&motor_br.encoder));
+            printf("Motor Outs: %.1f %.1f %.1f %.1f\n", motor_fl.out, motor_bl.out, motor_fr.out, motor_br.out);
+            printf("Encoder Vel: %.1f %.1f %.1f %.1f\n", motor_fl.cur_vel, motor_bl.cur_vel, motor_fr.cur_vel, motor_br.cur_vel);
             led = !led;
 #ifdef PICO_W
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
