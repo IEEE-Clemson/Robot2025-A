@@ -28,9 +28,10 @@ vision.add_pose2d_callback = drivetrain.pose_estimator.add_vision_pose
 sleep(1)
 auto_command = TrapezoidalMove(drivetrain, 0.794, 1.143 / 2, -pi/2) \
                 .andThen(TrapezoidalMove(drivetrain, 1.2, 1.143 / 2, 0)) \
-                .andThen(TrapezoidalMove(drivetrain, 1.3, 1.143 / 2, 0)) \
-                .andThen(TrapezoidalMove(drivetrain, 0.7, 1.143 / 2, 0)) \
-                .andThen(TrapezoidalMove(drivetrain, 0.7, 1.2,  0)) \
+                .andThen(TrapezoidalMove(drivetrain, 1.7, 1.143 / 2, 0)) \
+                .andThen(TrapezoidalMove(drivetrain, 1.1, 1.143 / 2, 0)) \
+                .andThen(TrapezoidalMove(drivetrain, 1.1, 0.9,  0)) \
+                .andThen(TrapezoidalMove(drivetrain, 0.3, 0.9,  0)) \
                 #.andThen(commands2.InstantCommand(lambda: drivetrain.reset_odom(0.7, 1.0, 0), drivetrain).ignoringDisable(True)) \
                 #.andThen(TrapezoidalMove(drivetrain,s 0.3, 1.0, 0)) \
                 #.andThen(TrapezoidalMove(drivetrain, 0.794, 1.143 / 2, 0)) \ # ORIGINALY LINE 2

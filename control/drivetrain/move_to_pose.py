@@ -36,7 +36,7 @@ class TrapezoidalMove(commands2.Command):
 
         self._trajectory_controller = PPHolonomicDriveController(
             pid_consts_vxy,
-            PIDConstants(4, 0.7, 0, 10),
+            PIDConstants(5, 1.0, 0.5, 3),
         )
 
         self.addRequirements(drivetrain)
@@ -90,7 +90,7 @@ class TrapezoidalMove(commands2.Command):
         print("diff", pose_diff.translation())
 
         xy_tol = 0.01
-        theta_tol = 0.1
+        theta_tol = 0.05
         vx, vy, omega = self._drivetrain.get_local_vel()
         return (
             cur_time > self._trajectory.getTotalTimeSeconds()

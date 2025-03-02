@@ -46,8 +46,8 @@ class Drivetrain(Subsystem):
 
         self.slew_rate_xy = 0.75
         self.slew_rate_theta = 3.0
-        self.max_speed = 0.1
-        self.max_omega = 0.1
+        self.max_speed = 0.3
+        self.max_omega = 5.0
         self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.1, 0.1, 0.1])
 
         # Config for trajectory controllers
