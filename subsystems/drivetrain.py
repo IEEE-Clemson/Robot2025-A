@@ -84,6 +84,12 @@ class Drivetrain(Subsystem):
         self._theta_odom = theta
         self.pose_estimator.reset_pose(self._x_odom, self._theta_odom)
 
+    def reset_odom_inches(self, x: float, y: float, theta: float):
+        METERS_TO_INCHES = 39.3701
+        self._x_odom = np.array([x, y]) / METERS_TO_INCHES
+        self._theta_odom = theta / math.pi * 180
+        self.pose_estimator.reset_pose(self._x_odom, self._theta_odom)
+
     def compute_odom(self, dt: float):
         # TODO: Fuse latency compensated vision results with odometry
         x_hat = (

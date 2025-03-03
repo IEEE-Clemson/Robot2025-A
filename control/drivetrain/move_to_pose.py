@@ -3,6 +3,7 @@
 
 import math
 from time import time
+from typing import Callable
 import commands2
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds
@@ -16,19 +17,20 @@ from pathplannerlib.path import (
 )
 
 from pathplannerlib.controller import PPHolonomicDriveController
+from pathplannerlib.trajectory import PathPlannerTrajectory
 
 from subsystems.drivetrain import Drivetrain
 
 
+class MoveCommand(commands2.Command):
+    """Drives robot along a trajectory given by a lambda"""
 
-class TrapezoidalMove(commands2.Command):
-    """Move the drivetrain to a given pose using a trapezoidal motion profile.
-    """
-
-    def __init__(self, drivetrain: Drivetrain, x: float, y: float, theta: float):
-        self._x = x
-        self._y = y
-        self._theta = theta
+    def __init__(
+        self,
+        drivetrain: Drivetrain,
+        trajectory_func: Callable[[Drivetrain], PathPlannerTrajectory],
+    ):
+        self._trajectory_gen = trajectory_func
         self._drivetrain = drivetrain
         self._trajectory = None
         self._start_time = time()
@@ -43,31 +45,7 @@ class TrapezoidalMove(commands2.Command):
         super().__init__()
 
     def initialize(self):
-
-        start = self._drivetrain.pose()
-
-        rot = Rotation2d(math.atan2(self._y - start.y, self._x - start.x))
-        start = Pose2d(start.x, start.y, rot)
-        end = Pose2d(self._x, self._y, rot)
-        waypoints = PathPlannerPath.waypointsFromPoses([start, end])
-        constraints = PathConstraints(
-            0.3, 0.3, 2 * math.pi, 2 * math.pi, unlimited=False
-        )
-        path = PathPlannerPath(
-            waypoints,
-            constraints,
-            IdealStartingState(
-                0.0, self._drivetrain.pose().rotation()
-            ),
-            GoalEndState(
-                0.0, Rotation2d(self._theta)
-            ),
-        )
-
-        path.preventFlipping = True
-        self._trajectory = path.generateTrajectory(
-            ChassisSpeeds(0, 0, 0), self._drivetrain.pose().rotation(), self._drivetrain.robot_config
-        )
+        self._trajectory = self._trajectory_gen(self._drivetrain)
 
         self._start_time = time()
 
@@ -86,8 +64,7 @@ class TrapezoidalMove(commands2.Command):
         if self._trajectory is None:
             return False
         cur_time = time() - self._start_time
-        pose_diff = Pose2d(self._x, self._y, self._theta) - self._drivetrain.pose()
-        print("diff", pose_diff.translation())
+        pose_diff = self._trajectory.getEndState().pose - self._drivetrain.pose()
 
         xy_tol = 0.01
         theta_tol = 0.05
@@ -105,3 +82,49 @@ class TrapezoidalMove(commands2.Command):
 
     def runsWhenDisabled(self):
         return True
+
+
+def __trapezoidal_move_trajectory(
+    drivetrain: Drivetrain, x: float, y: float, theta: float
+) -> PathPlannerPath:
+    start = drivetrain.pose()
+
+    rot = Rotation2d(math.atan2(y - start.y, x - start.x))
+    start = Pose2d(start.x, start.y, rot)
+    end = Pose2d(x, y, rot)
+    waypoints = PathPlannerPath.waypointsFromPoses([start, end])
+    constraints = PathConstraints(0.3, 0.3, 2 * math.pi, 2 * math.pi, unlimited=False)
+    path = PathPlannerPath(
+        waypoints,
+        constraints,
+        IdealStartingState(0.0, drivetrain.pose().rotation()),
+        GoalEndState(0.0, Rotation2d(theta)),
+    )
+
+    path.preventFlipping = True
+    trajectory = path.generateTrajectory(
+        ChassisSpeeds(0, 0, 0), drivetrain.pose().rotation(), drivetrain.robot_config
+    )
+
+    return trajectory
+
+
+def move_to_meters(
+    drivetrain: Drivetrain, x: float, y: float, theta: float
+) -> MoveCommand:
+    return MoveCommand(
+        drivetrain,
+        lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x, y, theta),
+    )
+
+
+
+def move_to_inches(
+    drivetrain: Drivetrain, x: float, y: float, theta: float
+) -> MoveCommand:
+    METERS_TO_INCHES = 39.3701
+    return MoveCommand(
+        drivetrain,
+        lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x / METERS_TO_INCHES, y / METERS_TO_INCHES, theta / math.pi * 180),
+    )
+

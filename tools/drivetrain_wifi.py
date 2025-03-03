@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QApplication
 from PySide6.QtCore import QTimer, SIGNAL, QObject, QEvent
 import commands2
 
-from control.drivetrain.move_to_pose import TrapezoidalMove
+from control.drivetrain.move_to_pose import move_to_inches
 from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
 from cu_hal.drivetrain.drivetrain_sim import DrivetrainSim
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
@@ -52,12 +52,12 @@ def update():
 drive_command = commands2.cmd.run(update, drivetrain).ignoringDisable(True)
 drivetrain.setDefaultCommand(drive_command)
 
-move_pose_command = TrapezoidalMove(drivetrain, 0.794, 0.58, 0) \
-                .andThen(TrapezoidalMove(drivetrain, 1.9, 0.58, 0)) \
-                .andThen(TrapezoidalMove(drivetrain, 0.7, 0.58, 0)) \
-                .andThen(TrapezoidalMove(drivetrain, 0.7, 1.2,  0)) \
-                .andThen(commands2.InstantCommand(lambda: drivetrain.reset_odom(0.7, 1.0, 0), drivetrain).ignoringDisable(True)) \
-                .andThen(TrapezoidalMove(drivetrain, 0.3, 1.0, 0)) \
+move_pose_command = move_to_inches(drivetrain,      31.25, 23, 0) \
+                .andThen(move_to_inches(drivetrain, 75,    23, 0)) \
+                .andThen(move_to_inches(drivetrain, 27.5,  23, 0)) \
+                .andThen(move_to_inches(drivetrain, 27.5,  47, 0)) \
+                .andThen(commands2.InstantCommand(lambda: drivetrain.reset_odom(0.7, 39, 0), drivetrain).ignoringDisable(True)) \
+                .andThen(move_to_inches(drivetrain, 27.5,  39, 0)) \
 
 
 def update_thread():
