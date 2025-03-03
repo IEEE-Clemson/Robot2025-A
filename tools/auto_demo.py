@@ -1,12 +1,61 @@
 from math import pi
+import math
 from time import sleep, time
 from cu_hal.drivetrain.drivetrain_i2c import DrivetrainI2C
-from control.drivetrain.move_to_pose import move_to_inches
+from control.drivetrain.move_to_pose import RamseteMove, move_to_inches
 from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
 from cu_hal.drivetrain.drivetrain_sim import DrivetrainSim
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
 from subsystems.vision import Vision, VisionConfig
 import commands2
+
+from wpimath.geometry import Pose2d, Rotation2d
+
+from wpimath.trajectory import (
+    TrajectoryConfig,
+    TrajectoryGenerator,
+    TrapezoidProfileRadians,
+)
+
+
+def pose_from_inches(x: float, y: float, theta: float):
+    return Pose2d.fromFeet(x / 12, y / 12, Rotation2d.fromDegrees(theta))
+
+
+def sweep_gems_trajectory(drivetrain: Drivetrain):
+    # Should approximately be at 18, 35.5, -90
+    start = drivetrain.pose()
+    poses = []
+    
+    # X dist between sweeping patterns
+    dx = 12
+    # Number of cycles (top to bottom to top)
+    n = 2
+    # Starting X
+    x = 18
+    # Bottom Y
+    y1 = 9
+    # Top Y
+    y2 = 36
+    # Radius of curves
+    r = 9
+    for i in range(n):
+        poses.append(pose_from_inches(x + 2*i*dx,            y1 + r, -90))
+        poses.append(pose_from_inches(x + 2*i*dx + dx/2,     y1,       0))
+        poses.append(pose_from_inches(x + 2*i*dx + dx,       y1 + r,  90))
+        poses.append(pose_from_inches(x + (2*i+1)*dx,        y2 - r,  90))
+        poses.append(pose_from_inches(x + (2*i+1)*dx + dx/2, y2,       0))
+        poses.append(pose_from_inches(x + (2*i+1)*dx + dx/2, y2 - r, -90))
+
+    end = pose_from_inches(x + (n+1)*dx + dx / 2, y2 - r, -90)
+
+    config = TrajectoryConfig(0.2, 0.2)
+    config.setReversed(False)
+
+    trajectory = TrajectoryGenerator.generateTrajectory(
+        start, poses, end, config
+    )
+    return trajectory
 
 drivetrain_hal = DrivetrainI2C()
 drivetrain = Drivetrain(DrivetrainConfig(), drivetrain_hal)
@@ -26,6 +75,8 @@ auto_command = move_to_inches(drivetrain,            32.25, 22.5,   -90) \
                 .andThen(move_to_inches(drivetrain,  43,    22.5,     0)) \
                 .andThen(move_to_inches(drivetrain,  43,    35.5,     0)) \
                 .andThen(move_to_inches(drivetrain,  12,    35.5,     0)) \
+                .andThen(move_to_inches(drivetrain,  18,    32,     -90)) \
+                .andThen(RamseteMove(drivetrain, sweep_gems_trajectory))
 
 
 def update_thread():
