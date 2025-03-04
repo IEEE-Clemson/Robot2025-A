@@ -28,6 +28,10 @@ pico_generate_pio_header(drivetrain_native
 target_link_libraries(drivetrain_native
     pico_stdlib 
     pico_sync
+    pico_stdio_semihosting
+    pico_stdio_uart
+    pico_stdio_usb
+    hardware_gpio
     hardware_adc
     hardware_pio
     hardware_i2c
