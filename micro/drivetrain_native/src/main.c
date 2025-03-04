@@ -7,6 +7,7 @@
 
 #include "hardware/adc.h"
 #include "hardware/i2c.h"
+#include "hardware/watchdog.h"
 
 #include "config.h"
 #include "i2c_slave.h"
@@ -139,6 +140,13 @@ int main() {
     timer_hw->dbgpause = 0;
 
     stdio_init_all();
+    if (watchdog_enable_caused_reboot()) {
+        printf("Rebooted by Watchdog!\n");
+        return 0;
+    }
+    watchdog_enable(100, 1);
+    
+    // Unfortunately, we have to load the entire network stack to use LED on pico W
 #ifdef PICO_W
     if(cyw43_arch_init()) {
         printf("Wi-Fi init failed");
@@ -153,6 +161,7 @@ int main() {
     init_motors();
     bno_gyro_init(&imu, IMU_I2C_INST, IMU_SDA_PIN, IMU_SCL_PIN);
     bno_gyro_reset(&imu, 0, 0, 0);
+    watchdog_update();
     
     dt = 1.0f / FREQ;
     
@@ -194,5 +203,6 @@ int main() {
 #endif
         }
         count++; 
+        watchdog_update();
     }
 }

@@ -359,6 +359,8 @@ void bno_gyro_get_euler_angles_raw(struct BNO055_GYRO* bno, int16_t *roll, int16
 {
     uint16_t roll1, roll0, pitch1, pitch0, yaw1, yaw0;
     int16_t roll_raw, pitch_raw, yaw_raw;
+    
+    write_register(bno->i2c, OPR_MODE, OPR_MODE_IMU); // Enable
     roll0 = read_register(bno->i2c, EUL_DATA_X_7_0);
     roll1 = read_register(bno->i2c, EUL_DATA_X_15_8);
     *roll = (roll1 << 8) | roll0;
@@ -387,21 +389,6 @@ void bno_gyro_reset(struct BNO055_GYRO* bno, int16_t roll, int16_t pitch, int16_
     // Enter config mode to reset
     write_register(bno->i2c, OPR_MODE, OPR_MODE_CONFIGMODE);
     write_register(bno->i2c, UNIT_SEL, UNIT_SEL_RAD | UNIT_SEL_RADS | UNIT_SEL_MPS2);
-
-    roll0 = roll & 0xFF;
-    roll1 = roll >> 8;
-    write_register(bno->i2c, EUL_DATA_X_7_0, roll0);
-    write_register(bno->i2c, EUL_DATA_X_15_8, roll1);
-
-    pitch0 = pitch & 0xFF;
-    pitch1 = pitch >> 8;
-    write_register(bno->i2c, EUL_DATA_Y_7_0, pitch0);
-    write_register(bno->i2c, EUL_DATA_Y_15_8, pitch1);
-
-    yaw0 = yaw & 0xFF;
-    yaw1 = yaw >> 8;
-    write_register(bno->i2c, EUL_DATA_Z_7_0, yaw0);
-    write_register(bno->i2c, EUL_DATA_Z_15_8, yaw1);
 
     write_register(bno->i2c, OPR_MODE, OPR_MODE_IMU); // Enable
 }
