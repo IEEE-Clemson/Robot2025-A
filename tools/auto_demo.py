@@ -2,7 +2,7 @@ from math import pi
 import math
 from time import sleep, time
 from cu_hal.drivetrain.drivetrain_i2c import DrivetrainI2C
-from control.drivetrain.move_to_pose import RamseteMove, move_to_inches
+from control.drivetrain.move_to_pose import MoveCommand, RamseteMove, move_to_inches
 from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
 from cu_hal.drivetrain.drivetrain_sim import DrivetrainSim
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
@@ -28,48 +28,65 @@ def sweep_gems_trajectory(drivetrain: Drivetrain):
     poses = []
     
     # X dist between sweeping patterns
-    dx = 12
+    dx = 9
     # Number of cycles (top to bottom to top)
     n = 2
     # Starting X
     x = 18
     # Bottom Y
-    y1 = 9
+    y1 = 5
     # Top Y
-    y2 = 36
+    y2 = 40
     # Radius of curves
     r = 9
     for i in range(n):
         poses.append(pose_from_inches(x + 2*i*dx,            y1 + r, -90))
-        poses.append(pose_from_inches(x + 2*i*dx + dx/2,     y1,       0))
-        poses.append(pose_from_inches(x + 2*i*dx + dx,       y1 + r,  90))
+        #poses.append(pose_from_inches(x + 2*i*dx + dx/2,     y1,       0))
+        poses.append(pose_from_inches(x + (2*i + 1)*dx,       y1 + r,  90))
         poses.append(pose_from_inches(x + (2*i+1)*dx,        y2 - r,  90))
-        poses.append(pose_from_inches(x + (2*i+1)*dx + dx/2, y2,       0))
-        poses.append(pose_from_inches(x + (2*i+1)*dx + dx/2, y2 - r, -90))
+        #poses.append(pose_from_inches(x + (2*i+1)*dx + dx/2, y2,       0))
+        poses.append(pose_from_inches(x + (2*i+2)*dx,        y2 - r, -90))
 
-    end = pose_from_inches(x + (n+1)*dx + dx / 2, y2 - r, -90)
-
-    config = TrajectoryConfig(0.2, 0.2)
+    end = pose_from_inches(x + (n+1)*dx + dx / 2, y2 - r, 90)
+    poses = [pose.translation() for pose in poses]
+    config = TrajectoryConfig(0.1, 0.2)
     config.setReversed(False)
 
     trajectory = TrajectoryGenerator.generateTrajectory(
-        start, poses, end, config
+        start, poses[:-1], end, config
     )
     return trajectory
 
+def sweep_gems_trajectory2(drivetrain: Drivetrain):
+    x_i = 12
+    x_f = 48
+    y_i = 35.5
+    dy = -8
+    n = 4
+    cmds = []
+    for i in range(n):
+        cmd = move_to_inches(drivetrain, x_f, y_i + i*dy, 0) \
+            .andThen(move_to_inches(drivetrain, x_i, y_i + i*dy, 0)) \
+            .andThen(move_to_inches(drivetrain, x_i, y_i + (i+1)*dy, 0))
+        cmds.append(cmd)
+    return commands2.SequentialCommandGroup(*cmds).ignoringDisable(True)
+
 drivetrain_hal = DrivetrainI2C()
 drivetrain = Drivetrain(DrivetrainConfig(), drivetrain_hal)
-drivetrain.reset_odom_inches(32.25, 5.5, -90)
+drivetrain.reset_odom_inches(32.25, 8, -90)
 drivetrain.drive_raw_local(0, 0, 0)
 drivetrain.periodic()
 
 vision_config = VisionConfig()
 vision_config.should_display = False
-vision_config.dev_index = 0
+vision_config.dev_index = 1
 vision = Vision(vision_config)
 vision.add_pose2d_callback = drivetrain.pose_estimator.add_vision_pose
 sleep(1)
 auto_command = move_to_inches(drivetrain,            32.25, 22.5,   -90) \
+                .andThen(move_to_inches(drivetrain,  24,    22.5,     0)) \
+                .andThen(move_to_inches(drivetrain,  4,     22.5,     0)) \
+                .andThen(commands2.WaitCommand(3).ignoringDisable(True)) \
                 .andThen(move_to_inches(drivetrain,  47,    22.5,     0)) \
                 .andThen(move_to_inches(drivetrain,  67,    22.5,     0)) \
                 .andThen(move_to_inches(drivetrain,  43,    22.5,     0)) \
@@ -77,6 +94,10 @@ auto_command = move_to_inches(drivetrain,            32.25, 22.5,   -90) \
                 .andThen(move_to_inches(drivetrain,  12,    35.5,     0)) \
                 .andThen(move_to_inches(drivetrain,  18,    32,     -90)) \
                 .andThen(RamseteMove(drivetrain, sweep_gems_trajectory))
+
+
+auto_command2 = move_to_inches(drivetrain,            12, 35.5,   0) \
+                .andThen(sweep_gems_trajectory2(drivetrain))
 
 
 def update_thread():
@@ -87,12 +108,12 @@ def update_thread():
     while True:
         t = time()
         commands2.CommandScheduler.getInstance().run()
-        print(drivetrain.pose().translation())
         t_new = time()
+        print(t_new - t)
         to_sleep = dt - (t_new - t)
         if to_sleep > 0:
             sleep(to_sleep)
 
 
-auto_command.schedule()
+auto_command2.schedule()
 update_thread()

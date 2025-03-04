@@ -1,3 +1,4 @@
+from time import sleep
 from typing import Tuple
 import comms
 from cu_hal.interfaces import DrivetrainHAL
@@ -16,7 +17,14 @@ class DrivetrainI2C(DrivetrainHAL):
     #     self.__comm = comm
 
     def get_local_velocity(self) -> Tuple[float, float, float]:
-        data = struct.unpack('<hhh', bytes(bus.read_i2c_block_data(0x41, 6, 6)))
+        byte_data = None
+        for i in range(5):
+            try:
+                byte_data = bytes(bus.read_i2c_block_data(0x41, 6, 6))
+                break
+            except OSError:
+                sleep(0.02)
+        data = struct.unpack('<hhh', byte_data)
         # print(data)
         vx_actual = data[0] * V_MAX / INT16_MAX
         vy_actual = data[1] * V_MAX / INT16_MAX
@@ -30,7 +38,13 @@ class DrivetrainI2C(DrivetrainHAL):
 
 
         data = struct.pack("<hhh", vx_raw, vy_raw, omega_raw)
-        bus.write_i2c_block_data(0x41, 0, data)
+        for i in range(5):
+            try:
+                bus.write_i2c_block_data(0x41, 0, data)
+                break
+            except OSError:
+                sleep(0.02)
+        
         return self.get_local_velocity()
     
     

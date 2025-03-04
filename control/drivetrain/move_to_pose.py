@@ -22,6 +22,7 @@ from wpimath.trajectory import (
     TrajectoryConfig,
     TrajectoryGenerator,
     TrapezoidProfileRadians,
+    Trajectory
 )
 
 
@@ -39,16 +40,22 @@ from subsystems.drivetrain import Drivetrain
 
 class RamseteMove(commands2.Command):
     """Drives robot along a trajectory given by a lambda, making sure the robot always faces forward"""
-    def __init__(self, drivetrain: Drivetrain, trajectory_generator: Callable[[Drivetrain], PathPlannerTrajectory]):
+    def __init__(self, drivetrain: Drivetrain, trajectory_generator: Callable[[Drivetrain], Trajectory]):
         self._drivetrain = drivetrain
         self._trajectory_generator = trajectory_generator
         self._trajectory = None
         self._start_time = time()
-        pid_consts_vxy = PIDConstants(4, 0.3, 0, 1)
+        x_pid = PIDController(4, 0.3, 0)
+        y_pid = PIDController(4, 0.3, 0)
+        x_pid.setIZone(1)
+        y_pid.setIZone(1)
 
-        self._trajectory_controller = PPHolonomicDriveController(
-            pid_consts_vxy,
-            PIDConstants(5, 1.0, 0.5, 3),
+        self._trajectory_controller = HolonomicDriveController(
+            x_pid,
+            y_pid,
+            ProfiledPIDControllerRadians(
+                3, 1.0, 2.0, TrapezoidProfileRadians.Constraints(3.14, 6.0)
+            ),
         )
 
         self.addRequirements(drivetrain)
@@ -63,13 +70,7 @@ class RamseteMove(commands2.Command):
             return False
         cur_time = time() - self._start_time
         desired_state = self._trajectory.sample(cur_time)
-        pp_state = PathPlannerTrajectoryState(
-            desired_state.timeSeconds,
-            desired_state.fieldSpeeds,
-            desired_state.pose,
-            desired_state.linearVelocity
-        )
-        speeds = self._trajectory_controller.calculateRobotRelativeSpeeds(self._drivetrain.pose(), pp_state)
+        speeds = self._trajectory_controller.calculate(self._drivetrain.pose(), desired_state.pose, desired_state.velocity, desired_state.pose.rotation())
         self._drivetrain.drive_raw_local(speeds.vx, speeds.vy, speeds.omega)
 
 
@@ -77,13 +78,13 @@ class RamseteMove(commands2.Command):
         if self._trajectory is None:
             return False
         cur_time = time() - self._start_time
-        pose_diff = self._trajectory.getEndState().pose - self._drivetrain.pose()
+        pose_diff = self._trajectory.states()[-1].pose - self._drivetrain.pose()
 
         xy_tol = 0.01
         theta_tol = 0.05
         vx, vy, omega = self._drivetrain.get_local_vel()
         return (
-            cur_time > self._trajectory.getTotalTimeSeconds()
+            cur_time > self._trajectory.totalTime()
             and abs(pose_diff.x) < xy_tol
             and abs(pose_diff.y) < xy_tol
             and abs(pose_diff.rotation().radians()) < theta_tol
@@ -168,7 +169,7 @@ def __trapezoidal_move_trajectory(
     start = Pose2d(start.x, start.y, rot)
     end = Pose2d(x, y, rot)
     waypoints = PathPlannerPath.waypointsFromPoses([start, end])
-    constraints = PathConstraints(0.3, 0.3, 2 * math.pi, 2 * math.pi, unlimited=False)
+    constraints = PathConstraints(0.2, 0.5, 2 * math.pi, 2 * math.pi, unlimited=False)
     path = PathPlannerPath(
         waypoints,
         constraints,
@@ -200,6 +201,6 @@ def move_to_inches(
     METERS_TO_INCHES = 39.3701
     return MoveCommand(
         drivetrain,
-        lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x / METERS_TO_INCHES, y / METERS_TO_INCHES, theta / math.pi * 180),
+        lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x / METERS_TO_INCHES, y / METERS_TO_INCHES, theta * math.pi / 180),
     )
 
