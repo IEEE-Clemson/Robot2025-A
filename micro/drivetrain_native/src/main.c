@@ -177,14 +177,15 @@ int main() {
         // Blink led for heartbeat
         i = (i + 1) % 100;
         if(i == 0) {
-            //printf("Gyro Data: %f %f %f\n", gx, gy, gz);
-            //printf("Acc Data: %f %f %f\n", ax, ay, az);
-            //printf("Avg Acce: %f %f %f\n", avgx/count, avgy/count, avgz/count);
+            // This is a no-op if usb is disconnected
             printf("Rotation: %f %f %f\n", roll_raw * REG2RAD, pitch_raw * REG2RAD, yaw_raw * REG2RAD);    
-            //printf("Position Data: %f %f %f\n", px, py, pz);
-            //printf("Encoder Count: %d %d %d %d\n", encoder_get_count(&motor_fl.encoder), encoder_get_count(&motor_bl.encoder), encoder_get_count(&motor_fr.encoder), encoder_get_count(&motor_br.encoder));
-            //printf("Motor Outs: %.1f %.1f %.1f %.1f\n", motor_fl.out, motor_bl.out, motor_fr.out, motor_br.out);
-            //printf("Encoder Vel: %.1f %.1f %.1f %.1f\n", motor_fl.cur_vel, motor_bl.cur_vel, motor_fr.cur_vel, motor_br.cur_vel);
+            printf("Encoder Count: %d %d %d %d\n", 
+                encoder_get_count(&motor_fl.encoder), 
+                encoder_get_count(&motor_bl.encoder), 
+                encoder_get_count(&motor_fr.encoder), 
+                encoder_get_count(&motor_br.encoder));
+            printf("Motor Outs: %.1f %.1f %.1f %.1f\n", motor_fl.out, motor_bl.out, motor_fr.out, motor_br.out);
+            printf("Encoder Vel: %.1f %.1f %.1f %.1f\n", motor_fl.cur_vel, motor_bl.cur_vel, motor_fr.cur_vel, motor_br.cur_vel);
             led = !led;
 #ifdef PICO_W
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);

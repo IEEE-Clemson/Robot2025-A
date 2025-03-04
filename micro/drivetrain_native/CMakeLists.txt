@@ -31,7 +31,8 @@ target_link_libraries(drivetrain_native
     hardware_adc
     hardware_pio
     hardware_i2c
-    hardware_pwm)
+    hardware_pwm
+    hardware_watchdog)
 if(PICO_BOARD STREQUAL pico_w)
     target_link_libraries(drivetrain_native pico_cyw43_arch_none)
     target_compile_definitions(drivetrain_native PRIVATE PICO_W=1)
@@ -41,6 +42,11 @@ endif()
 # Create map/bin/hex/uf2 files
 pico_add_extra_outputs(drivetrain_native)
 
-# Enable USB serial
+# Select USB, UART, or SWD Semihosting for stdio
+# NOTE: Only one can be enabled
+# Use usb if not using pico probe
 pico_enable_stdio_usb(drivetrain_native 0)
-pico_enable_stdio_uart(drivetrain_native 1)
+# Use uart for fast stdio over pico (requires extra wires)
+pico_enable_stdio_uart(drivetrain_native 0)
+# Use semihosting for slower stdio over pico (Only swd connector needed)
+pico_enable_stdio_semihosting(drivetrain_native 1)

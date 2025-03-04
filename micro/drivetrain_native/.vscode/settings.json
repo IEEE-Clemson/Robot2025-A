@@ -20,6 +20,12 @@
         "i2c_slave.h": "c",
         "functional": "c",
         "cstdint": "cpp",
-        "pwm.h": "c"
+        "pwm.h": "c",
+        "madgwick_filter.h": "c",
+        "comm.h": "c",
+        "config.h": "c",
+        "watchdog.h": "c",
+        "stdlib.h": "c",
+        "stdio_semihosting.h": "c"
     }
 }

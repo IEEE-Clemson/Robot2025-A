@@ -22,6 +22,8 @@
             ],
             // Work around for stopping at main on restart
             "postRestartCommands": [
+                "monitor semihosting enable",
+                "monitor semihosting ioclient 3", // 1: telnet (port 2333); 2: gdb; 3: both telnet and gdbclient output
                 "break main",
                 "continue"
             ]
