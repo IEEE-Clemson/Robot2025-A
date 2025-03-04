@@ -11,7 +11,6 @@ include_directories(drivetrain_native include)
 
 add_executable(drivetrain_native 
     src/main.c
-    src/i2c_slave.c
     src/encoder.c
     src/pid_control.c
     src/util.c
@@ -31,6 +30,7 @@ target_link_libraries(drivetrain_native
     pico_stdio_semihosting
     pico_stdio_uart
     pico_stdio_usb
+    pico_i2c_slave
     hardware_gpio
     hardware_adc
     hardware_pio

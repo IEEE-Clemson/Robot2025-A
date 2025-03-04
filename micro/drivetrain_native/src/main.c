@@ -8,10 +8,9 @@
 #include "hardware/adc.h"
 #include "hardware/i2c.h"
 #include "hardware/watchdog.h"
+#include "pico/i2c_slave.h"
 
 #include "config.h"
-#include "i2c_slave.h"
-#include "i2c_fifo.h"
 #include "pi_motor.h"
 #include "pid_control.h"
 #include "imu.h"
@@ -33,17 +32,17 @@ struct PIDParams pid_params;
 struct PIMotorMod10A motor_fl, motor_fr, motor_bl, motor_br;
 struct BNO055_GYRO imu = {};
 
-static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
+static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
     switch (event) {
     case I2C_SLAVE_RECEIVE: // master has written some data
         if (!i2c_addr_written) {
             // writes always start with the memory address
-            i2c_mem_addr = i2c_read_byte(i2c);
+            i2c_mem_addr = i2c_read_byte_raw(i2c);
             i2c_addr_written = true;
         } else {
             // save into memory
-            byte = i2c_read_byte(i2c);
+            byte = i2c_read_byte_raw(i2c);
             if(i2c_mem_addr < BUFF_SIZE)
                 i2c_mem[i2c_mem_addr] = byte;
             i2c_mem_addr++;
@@ -52,9 +51,9 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     case I2C_SLAVE_REQUEST: // master is requesting data
         // load from memory
         if(i2c_mem_addr < BUFF_SIZE)
-            i2c_write_byte(i2c, i2c_mem[i2c_mem_addr]);
+            i2c_write_byte_raw(i2c, i2c_mem[i2c_mem_addr]);
         else
-            i2c_write_byte(i2c, 0);
+            i2c_write_byte_raw(i2c, 0);
         i2c_mem_addr++;
         break;
     case I2C_SLAVE_FINISH: // master has signalled Stop / Restart
