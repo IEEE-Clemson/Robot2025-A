@@ -38,7 +38,7 @@ class Drivetrain(Subsystem):
         self._target_omega = 0
 
         self._vx_local = np.array([0, 0])
-        self._omega = 0
+        self._theta = 0
 
         self._cur_ref_x_vel = 0
         self._cur_ref_y_vel = 0
@@ -49,6 +49,7 @@ class Drivetrain(Subsystem):
         self.max_speed = 0.4
         self.max_omega = 3.0
         self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.1, 0.1, 0.1])
+        self.offset = 0
 
         # Config for trajectory controllers
         rx = 0.052
@@ -81,6 +82,7 @@ class Drivetrain(Subsystem):
 
     def reset_odom(self, x: float, y: float, theta: float):
         self._x_odom = np.array([x, y])
+        self.offset = theta - self._theta
         self._theta_odom = theta
         self.pose_estimator.reset_pose(self._x_odom, self._theta_odom)
 
@@ -88,6 +90,7 @@ class Drivetrain(Subsystem):
         METERS_TO_INCHES = 39.3701
         self._x_odom = np.array([x, y]) / METERS_TO_INCHES
         self._theta_odom = theta * math.pi / 180
+        self.offset = self._theta_odom - self._theta
         self.pose_estimator.reset_pose(self._x_odom, self._theta_odom)
 
     def compute_odom(self, dt: float):
@@ -103,9 +106,8 @@ class Drivetrain(Subsystem):
             @ self._vx_local
             * dt
         )
-        theta_hat = self._theta_odom + self._omega * dt
         self._x_odom = x_hat
-        self._theta_odom = theta_hat
+
 
     def periodic(self):
         """Updates the subsystem
@@ -145,15 +147,18 @@ class Drivetrain(Subsystem):
             )
 
         t = time.time()
-        vx, vy, self._omega = self._hal.set_target_wheel_velocities(
+        vx, vy, raw_theta = self._hal.set_target_wheel_velocities(
             self._cur_ref_x_vel, self._cur_ref_y_vel, self._cur_ref_omega
         )
+        self._theta = raw_theta
+        self._theta_odom = self._theta + self.offset
+        print(self._theta_odom)
         self._vx_local = np.array([vx, vy])
 
         self.compute_odom(dt)
         self.pose_estimator.update_with_time(
             self._x_odom, self._theta_odom, time.time()
-        )
+        )        
 
     def drive_raw_local(self, vx, vy, omega):
         if abs(vx) > self.max_speed:
@@ -166,7 +171,7 @@ class Drivetrain(Subsystem):
         self._target_omega = omega
 
     def get_local_vel(self) -> Tuple[float, float, float]:
-        return self._vx_local[0], self._vx_local[1], self._omega
+        return self._vx_local[0], self._vx_local[1], 0
 
     @property
     def pose_x(self):
