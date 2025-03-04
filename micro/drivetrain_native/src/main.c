@@ -30,7 +30,7 @@ struct I2CMemLayout *mem = (struct I2CMemLayout*)(i2c_mem);
 
 struct PIDParams pid_params;
 struct PIMotorMod10A motor_fl, motor_fr, motor_bl, motor_br;
-struct BNO055 imu = {};
+struct BNO055_GYRO imu = {};
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
@@ -117,7 +117,7 @@ static void update_target_vel() {
     vx = (float)(mem->target_vx) * MAX_VXY / INT16_MAX;
     vy = (float)(mem->target_vy) * MAX_VXY / INT16_MAX;
     omega = (float)(mem->target_omega) * MAX_OMEGA / INT16_MAX;
-
+    
     a = 1 / WHEEL_RADIUS;
     b = (WHEEL_DIST_X + WHEEL_DIST_Y) * omega;
 
@@ -133,6 +133,7 @@ int main() {
     absolute_time_t time, time_to_sleep;
     int i = 0;
     bool led = false;
+    int16_t roll_raw, pitch_raw, yaw_raw;
 
     // Disable pause on debug when sleeping
     timer_hw->dbgpause = 0;
@@ -147,13 +148,11 @@ int main() {
     gpio_set_dir(LED_PIN_PICO, true);
 #endif
 
-    // sleep_ms(4000);
-
     
     setup_slave();
-    printf("Init motors\n");
     init_motors();
-    bno_init(&imu, IMU_I2C_INST, IMU_SDA_PIN, IMU_SCL_PIN);
+    bno_gyro_init(&imu, IMU_I2C_INST, IMU_SDA_PIN, IMU_SCL_PIN);
+    bno_gyro_reset(&imu, 0, 0, 0);
     
     dt = 1.0f / FREQ;
     
@@ -167,58 +166,13 @@ int main() {
         pi_motor_mod10a_update(&motor_bl, dt);
         pi_motor_mod10a_update(&motor_br, dt);
         
-        float gx, gy, gz, ax, ay, az;
-        int16_t gxraw, gyraw, gzraw, axraw, ayraw, azraw;
-        bno_get_raw_gyr_data(&imu, &gxraw, &gyraw, &gzraw);
-
-        bno_get_raw_acc_data(&imu, &axraw, &ayraw, &azraw);
-        //int time = get_sensor_time(&imu);
-        imu_filter(&q, dt, axraw, ayraw, azraw, gxraw, gyraw, gzraw);
-        
-        gx = (float)gxraw * PI / (16*180);
-        gy = (float)gyraw * PI / (16*180);
-        gz = (float)gyraw  *PI / (16*180);
-
-        ax = (float)axraw  / 100;
-        ay = (float)ayraw  / 100;
-        az = (float)azraw / 100;
-        az -= 9.81; // account for gravity
-
-        float px, py, pz;
-        float vx = 0, vy = 0, vz = 0;
-
-        avgx += ax;
-
-        vx = ax*dt + vx;
-        vy = ay*dt + vy;
-        vz = az*dt + vz;
-
-        px = vx*dt;
-        py = vy*dt;
-        pz = vz*dt;
-
-        px *= 100000;
-        py *= 100000;
-        pz *= 100000;
-
-        avgy += ay;
-
-
-        avgz += az;
-
-
-        count++; 
-
-        float roll, pitch, yaw;
-        eulerAngles(q, &roll, &pitch, &yaw);
+        bno_gyro_get_euler_angles_raw(&imu, &roll_raw, &pitch_raw, &yaw_raw);
         
         update_local_vel();
         update_target_vel();
-        //mem->theta = (int16_t)(imu_get_z_radians(&imu) / (2 * PI) * INT16_MAX);
+        mem->theta = roll_raw;
         
         busy_wait_until(time_to_sleep);
-
-
 
         // Blink led for heartbeat
         i = (i + 1) % 100;
@@ -226,11 +180,11 @@ int main() {
             //printf("Gyro Data: %f %f %f\n", gx, gy, gz);
             //printf("Acc Data: %f %f %f\n", ax, ay, az);
             //printf("Avg Acce: %f %f %f\n", avgx/count, avgy/count, avgz/count);
-            //printf("Rotation: %f %f %f\n", roll, pitch, yaw);    
+            printf("Rotation: %f %f %f\n", roll_raw * REG2RAD, pitch_raw * REG2RAD, yaw_raw * REG2RAD);    
             //printf("Position Data: %f %f %f\n", px, py, pz);
-            printf("Encoder Count: %d %d %d %d\n", encoder_get_count(&motor_fl.encoder), encoder_get_count(&motor_bl.encoder), encoder_get_count(&motor_fr.encoder), encoder_get_count(&motor_br.encoder));
-            printf("Motor Outs: %.1f %.1f %.1f %.1f\n", motor_fl.out, motor_bl.out, motor_fr.out, motor_br.out);
-            printf("Encoder Vel: %.1f %.1f %.1f %.1f\n", motor_fl.cur_vel, motor_bl.cur_vel, motor_fr.cur_vel, motor_br.cur_vel);
+            //printf("Encoder Count: %d %d %d %d\n", encoder_get_count(&motor_fl.encoder), encoder_get_count(&motor_bl.encoder), encoder_get_count(&motor_fr.encoder), encoder_get_count(&motor_br.encoder));
+            //printf("Motor Outs: %.1f %.1f %.1f %.1f\n", motor_fl.out, motor_bl.out, motor_fr.out, motor_br.out);
+            //printf("Encoder Vel: %.1f %.1f %.1f %.1f\n", motor_fl.cur_vel, motor_bl.cur_vel, motor_fr.cur_vel, motor_br.cur_vel);
             led = !led;
 #ifdef PICO_W
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
@@ -238,5 +192,6 @@ int main() {
             gpio_put(LED_PIN_PICO, led);
 #endif
         }
+        count++; 
     }
 }

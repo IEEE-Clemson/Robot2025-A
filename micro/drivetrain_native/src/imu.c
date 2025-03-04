@@ -11,7 +11,11 @@
 #define GYRO           UINT8_C(0x01)
 #define TIMEOUT_MS      UINT8_C(5000)
 
-static int i2c_read_data(i2c_inst_t* i2c, uint8_t reg_addr, uint8_t *reg_data, uint32_t len)
+static int i2c_read_data_verbose(i2c_inst_t* i2c, uint8_t reg_addr, uint8_t *reg_data, uint32_t len, bool silent);
+static int i2c_read_data(i2c_inst_t* i2c, uint8_t reg_addr, uint8_t *reg_data, uint32_t len);
+static int i2c_write_data(i2c_inst_t* i2c, uint8_t reg_addr, const uint8_t *reg_data, uint32_t len);
+
+static int i2c_read_data_verbose(i2c_inst_t* i2c, uint8_t reg_addr, uint8_t *reg_data, uint32_t len, bool silent)
 {
     int res;
     absolute_time_t start, timeout;
@@ -21,16 +25,23 @@ static int i2c_read_data(i2c_inst_t* i2c, uint8_t reg_addr, uint8_t *reg_data, u
 
     res = i2c_write_blocking(i2c, ADDR, &reg_addr, 1, true);
     if(res != 1) {
-        printf("Write addr fail\n");
+        if(!silent)
+            printf("Write addr fail\n");
 
         return -2;
     }
     res = i2c_read_blocking(i2c, ADDR, reg_data, len, false);
     if(res != len) {
-        printf("Read data fail\n");
+        if(!silent)
+            printf("Read data fail\n");
         return -2;
     }
     return 0;
+}
+
+static int i2c_read_data(i2c_inst_t* i2c, uint8_t reg_addr, uint8_t *reg_data, uint32_t len)
+{
+    return i2c_read_data_verbose(i2c, reg_addr, reg_data, len, false);
 }
 
 static int i2c_write_data(i2c_inst_t* i2c, uint8_t reg_addr, const uint8_t *reg_data, uint32_t len)
@@ -166,6 +177,42 @@ static const uint8_t MAG_RADIUS_7_0       = 0x69;
 static const uint8_t MAG_RADIUS_15_8      = 0x6A;
 
 // Common Definitions
+// OPR_MODE
+static const uint8_t OPR_MODE_CONFIGMODE = 0x00;
+static const uint8_t OPR_MODE_ACCONLY    = 0x01;
+static const uint8_t OPR_MODE_MAGONLY    = 0x02;
+static const uint8_t OPR_MODE_GYROONLY   = 0x03;
+static const uint8_t OPR_MODE_ACCMAG     = 0x04;
+static const uint8_t OPR_MODE_ACCGYRO    = 0x05;
+static const uint8_t OPR_MODE_MAGGYRO    = 0x06;
+static const uint8_t OPR_MODE_AMG        = 0x07;
+static const uint8_t OPR_MODE_IMU        = 0x08;
+static const uint8_t OPR_MODE_COMPASSS   = 0x09;
+static const uint8_t OPR_MODE_M4G        = 0x0A;
+static const uint8_t OPR_MODE_NDOF_FM    = 0x0B;
+static const uint8_t OPR_MODE_NDOF       = 0x0C;
+
+// UNIT_SEL
+static const uint8_t UNIT_SEL_MPS2       = 0x0;
+static const uint8_t UNIT_SEL_MG         = 0x01;
+
+static const uint8_t UNIT_SEL_DPS        = 0x0;
+static const uint8_t UNIT_SEL_RADS       = 0x02;
+
+static const uint8_t UNIT_SEL_DEG        = 0x0;
+static const uint8_t UNIT_SEL_RAD        = 0x04;
+
+static const uint8_t UNIT_SEL_DEGC       = 0x0;
+static const uint8_t UNIT_SEL_DEGF       = 0x10;
+
+// SYS_TRIGGER
+static const uint8_t SYS_TRIGGER_TEST    = 0x00;
+
+static const uint8_t SYS_TRIGGER_RST_SYS = 0x20;
+static const uint8_t SYS_TRIGGER_RST_INT = 0x40;
+static const uint8_t SYS_TRIGGER_CLK_SEL = 0x80;
+
+
 // General
 static const float   GRAVITY         = 9.81288;
 static const float   DEG2RAD         = 3.141592653589793 / 180.0;
@@ -226,20 +273,20 @@ static const uint8_t GYR_BWP_OSR4    = 0x00;      // OSR4
 static const uint8_t GYR_BWP_OSR2    = 0x01;      // OSR2
 static const uint8_t GYR_BWP_NORMAL  = 0x02;      // Normal
 
-static uint8_t read_register(struct BNO055* bmi, uint8_t reg)
+static uint8_t read_register(i2c_inst_t* i2c, uint8_t reg)
 {
     uint8_t data;
     int res;
-    res = i2c_read_data(bmi->i2c, reg, &data, 1);
+    res = i2c_read_data(i2c, reg, &data, 1);
     if(res < 0)
         printf("Failed to read register\n");
     return data;
 }
 
-static void write_register(struct BNO055* bmi, uint8_t reg, uint8_t data)
+static void write_register(i2c_inst_t* i2c, uint8_t reg, uint8_t data)
 {
     int res;
-    res = i2c_write_data(bmi->i2c, reg, &data, 1);
+    res = i2c_write_data(i2c, reg, &data, 1);
     if(res < 0)
         printf("Failed to write register\n");
 }
@@ -255,40 +302,106 @@ void bno_init(struct BNO055 *bno, i2c_inst_t *i2c, uint8_t sda, uint8_t scl)
 
     bno->i2c = i2c;
 
-    write_register(bno, 0x3D, 0x5); // Enable
+    write_register(bno->i2c, OPR_MODE, OPR_MODE_ACCGYRO); // Enable
+    write_register(bno->i2c, UNIT_SEL, UNIT_SEL_RAD | UNIT_SEL_RADS | UNIT_SEL_MPS2);
 }
 
 
-void bno_get_raw_gyr_data(struct BNO055* bmi, int16_t *gx, int16_t* gy, int16_t*gz)
+void bno_get_raw_gyr_data(struct BNO055* bno, int16_t *gx, int16_t* gy, int16_t*gz)
 {
     uint16_t gx1, gx0, gy1, gy0, gz1, gz0;
-    gx0 = read_register(bmi, GYR_DATA_X_7_0);
-    gx1 = read_register(bmi, GYR_DATA_X_15_8);
+    gx0 = read_register(bno->i2c, GYR_DATA_X_7_0);
+    gx1 = read_register(bno->i2c, GYR_DATA_X_15_8);
     *gx = (gx1 << 8) | gx0;
 
 
-    gy0 = read_register(bmi, GYR_DATA_Y_7_0);
-    gy1 = read_register(bmi, GYR_DATA_Y_15_8);
+    gy0 = read_register(bno->i2c, GYR_DATA_Y_7_0);
+    gy1 = read_register(bno->i2c, GYR_DATA_Y_15_8);
     *gy = (gy1 << 8) | gy0;
 
-    gz0 = read_register(bmi, GYR_DATA_Z_7_0);
-    gz1 = read_register(bmi, GYR_DATA_Z_15_8);
+    gz0 = read_register(bno->i2c, GYR_DATA_Z_7_0);
+    gz1 = read_register(bno->i2c, GYR_DATA_Z_15_8);
     *gz = (gz1 << 8) | gz0;
 }
 
-void bno_get_raw_acc_data(struct BNO055* bmi, int16_t *ax, int16_t* ay, int16_t*az)
+void bno_get_raw_acc_data(struct BNO055* bno, int16_t *ax, int16_t* ay, int16_t*az)
 {
     uint16_t ax1, ax0, ay1, ay0, az1, az0;
-    ax0 = read_register(bmi, ACC_X_7_0);
-    ax1 = read_register(bmi, ACC_X_15_8);
+    ax0 = read_register(bno->i2c, ACC_DATA_X_7_0);
+    ax1 = read_register(bno->i2c, ACC_DATA_X_15_8);
     *ax = (ax1 << 8) | ax0;
 
 
-    ay0 = read_register(bmi, ACC_Y_7_0);
-    ay1 = read_register(bmi, ACC_Y_15_8);
+    ay0 = read_register(bno->i2c, ACC_DATA_Y_7_0);
+    ay1 = read_register(bno->i2c, ACC_DATA_Y_15_8);
     *ay = (ay1 << 8) | ay0;
 
-    az0 = read_register(bmi, ACC_Z_7_0);
-    az1 = read_register(bmi, ACC_Z_15_8);
+    az0 = read_register(bno->i2c, ACC_DATA_Z_7_0);
+    az1 = read_register(bno->i2c, ACC_DATA_Z_15_8);
     *az = (az1 << 8) | az0;
+}
+
+void bno_gyro_init(struct BNO055_GYRO *bno, i2c_inst_t *i2c, uint8_t sda, uint8_t scl)
+{
+    i2c_init(i2c, 400000);
+    gpio_set_function(sda, GPIO_FUNC_I2C);
+    gpio_set_function(scl, GPIO_FUNC_I2C);
+    gpio_pull_up(sda);
+    gpio_pull_up(scl);
+
+    bno->i2c = i2c;
+
+    write_register(bno->i2c, OPR_MODE, OPR_MODE_IMU); // Enable
+    write_register(bno->i2c, UNIT_SEL, UNIT_SEL_RAD | UNIT_SEL_RADS | UNIT_SEL_MPS2);
+}
+
+void bno_gyro_get_euler_angles_raw(struct BNO055_GYRO* bno, int16_t *roll, int16_t* pitch, int16_t* yaw)
+{
+    uint16_t roll1, roll0, pitch1, pitch0, yaw1, yaw0;
+    int16_t roll_raw, pitch_raw, yaw_raw;
+    roll0 = read_register(bno->i2c, EUL_DATA_X_7_0);
+    roll1 = read_register(bno->i2c, EUL_DATA_X_15_8);
+    *roll = (roll1 << 8) | roll0;
+
+
+    pitch0 = read_register(bno->i2c, EUL_DATA_Y_7_0);
+    pitch1 = read_register(bno->i2c, EUL_DATA_Y_15_8);
+    *pitch = (pitch1 << 8) | pitch0;
+
+    yaw0 = read_register(bno->i2c, EUL_DATA_Z_7_0);
+    yaw1 = read_register(bno->i2c, EUL_DATA_Z_15_8);
+    *yaw = (yaw1 << 8) | yaw0;
+
+}
+
+void bno_gyro_reset(struct BNO055_GYRO* bno, int16_t roll, int16_t pitch, int16_t yaw)
+{
+    uint16_t roll1, roll0, pitch1, pitch0, yaw1, yaw0;
+    uint8_t data = 1;
+    int res = -1;
+
+    write_register(bno->i2c, SYS_TRIGGER, SYS_TRIGGER_RST_SYS);
+    while(res != 0 || data != 0) 
+        res = i2c_read_data_verbose(bno->i2c, SYS_STATUS, &data, 1, true);
+
+    // Enter config mode to reset
+    write_register(bno->i2c, OPR_MODE, OPR_MODE_CONFIGMODE);
+    write_register(bno->i2c, UNIT_SEL, UNIT_SEL_RAD | UNIT_SEL_RADS | UNIT_SEL_MPS2);
+
+    roll0 = roll & 0xFF;
+    roll1 = roll >> 8;
+    write_register(bno->i2c, EUL_DATA_X_7_0, roll0);
+    write_register(bno->i2c, EUL_DATA_X_15_8, roll1);
+
+    pitch0 = pitch & 0xFF;
+    pitch1 = pitch >> 8;
+    write_register(bno->i2c, EUL_DATA_Y_7_0, pitch0);
+    write_register(bno->i2c, EUL_DATA_Y_15_8, pitch1);
+
+    yaw0 = yaw & 0xFF;
+    yaw1 = yaw >> 8;
+    write_register(bno->i2c, EUL_DATA_Z_7_0, yaw0);
+    write_register(bno->i2c, EUL_DATA_Z_15_8, yaw1);
+
+    write_register(bno->i2c, OPR_MODE, OPR_MODE_IMU); // Enable
 }
