@@ -18,19 +18,20 @@
 #include "madgwick_filter.h"
 #include <stdlib.h>
 
-struct quaternion q = {0, 0, 0, 1};
-
 // Buff written to by i2c
-static uint8_t i2c_mem[BUFF_SIZE];
-static uint8_t i2c_mem_addr;
-bool i2c_addr_written;
+static volatile uint8_t i2c_mem[BUFF_SIZE];
+static volatile uint8_t i2c_mem_addr;
+static volatile bool i2c_addr_written;
+
+static volatile int16_t roll_raw, pitch_raw, yaw_raw;
+static volatile float theta_filtered;
 
 // Layout for usage in program
-struct I2CMemLayout *mem = (struct I2CMemLayout*)(i2c_mem);
+static volatile struct I2CMemLayout *mem = (volatile struct I2CMemLayout*)(i2c_mem);
 
-struct PIDParams pid_params;
-struct PIMotorMod10A motor_fl, motor_fr, motor_bl, motor_br;
-struct BNO055_GYRO imu = {};
+static volatile struct PIDParams pid_params;
+static volatile struct PIMotorMod10A motor_fl, motor_fr, motor_bl, motor_br;
+static volatile struct BNO055_GYRO imu = {};
 
 static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
@@ -133,7 +134,7 @@ int main() {
     absolute_time_t time, time_to_sleep;
     int i = 0;
     bool led = false;
-    int16_t roll_raw, pitch_raw, yaw_raw;
+    int count;
 
     // Disable pause on debug when sleeping
     timer_hw->dbgpause = 0;
