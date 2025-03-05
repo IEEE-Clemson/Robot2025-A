@@ -32,8 +32,8 @@ void bno_get_raw_gyr_data(struct BNO055* bno, int16_t *gx, int16_t* gy, int16_t*
 void bno_get_raw_acc_data(struct BNO055* bmi, int16_t *ax, int16_t* ay, int16_t*az);
 
 void bno_gyro_init(struct BNO055_GYRO *bno, i2c_inst_t *i2c, uint8_t sda, uint8_t scl);
-void bno_gyro_get_euler_angles_raw(struct BNO055_GYRO* bno, int16_t *roll, int16_t* pitch, int16_t* yaw);
-void bno_gyro_reset(struct BNO055_GYRO* bmi, int16_t roll, int16_t pitch, int16_t yaw);
+int bno_gyro_get_euler_angles_raw(struct BNO055_GYRO* bno, int16_t *roll, int16_t* pitch, int16_t* yaw);
+void bno_gyro_reset(struct BNO055_GYRO* bmi);
 
 #ifdef __cplusplus
 }
