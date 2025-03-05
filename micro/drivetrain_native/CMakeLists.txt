@@ -17,6 +17,7 @@ add_executable(drivetrain_native
     src/pi_motor.c
     src/madgwick_filter.c
     src/imu.c)
+target_compile_options(drivetrain_native PRIVATE -Wall -Wextra)
 
 pico_generate_pio_header(drivetrain_native 
     ${CMAKE_CURRENT_LIST_DIR}/src/encoder.pio)

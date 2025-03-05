@@ -23,15 +23,15 @@ static volatile uint8_t i2c_mem[BUFF_SIZE];
 static volatile uint8_t i2c_mem_addr;
 static volatile bool i2c_addr_written;
 
-static volatile int16_t roll_raw, pitch_raw, yaw_raw;
-static volatile float theta_filtered;
+static int16_t roll_raw, pitch_raw, yaw_raw;
+static float theta_filtered;
 
 // Layout for usage in program
 static volatile struct I2CMemLayout *mem = (volatile struct I2CMemLayout*)(i2c_mem);
 
-static volatile struct PIDParams pid_params;
-static volatile struct PIMotorMod10A motor_fl, motor_fr, motor_bl, motor_br;
-static volatile struct BNO055_GYRO imu = {};
+static struct PIDParams pid_params;
+static struct PIMotorMod10A motor_fl, motor_fr, motor_bl, motor_br;
+static struct BNO055_GYRO imu;
 
 static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
@@ -188,7 +188,8 @@ int main() {
         if(i == 0) {
             // This is a no-op if usb is disconnected
             printf("Rotation: %f %f %f\n", roll_raw * REG2RAD, pitch_raw * REG2RAD, yaw_raw * REG2RAD);    
-            printf("Encoder Count: %d %d %d %d\n", 
+            printf("Filtered theta: %f\n", theta_filtered);    
+            printf("Encoder Count: %ld %ld %ld %ld\n", 
                 encoder_get_count(&motor_fl.encoder), 
                 encoder_get_count(&motor_bl.encoder), 
                 encoder_get_count(&motor_fr.encoder), 

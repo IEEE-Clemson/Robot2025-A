@@ -88,10 +88,10 @@ void pi_motor_drive_raw(struct PIMotor *motor, float percent_out)
 
 void pi_motor_update(struct PIMotor *motor, float dt)
 {
-    int cur_count;
-    int i;
-    float raw_vel;
-    float vel;
+    int cur_count = 0;
+    int i = 0;
+    float raw_vel = 0;
+    float vel = 0;
 
     motor->pid.setpoint = motor->setpoint;
     cur_count = encoder_get_count(&motor->encoder);
@@ -195,10 +195,10 @@ void pi_motor_mod10a_drive_raw(struct PIMotorMod10A *motor, float percent_out)
 
 void pi_motor_mod10a_update(struct PIMotorMod10A *motor, float dt)
 {
-    int cur_count;
-    int i;
-    float raw_vel;
-    float vel;
+    int cur_count = 0;
+    int i = 0;
+    float raw_vel = 0;
+    float vel = 0;
 
     motor->pid.setpoint = motor->setpoint;
     cur_count = encoder_get_count(&motor->encoder);
