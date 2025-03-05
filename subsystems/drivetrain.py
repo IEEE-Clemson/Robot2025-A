@@ -48,7 +48,7 @@ class Drivetrain(Subsystem):
         self.slew_rate_theta = 3.0
         self.max_speed = 0.4
         self.max_omega = 3.0
-        self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.1, 0.1, 0.1])
+        self.pose_estimator = PoseEstimator([0.02, 0.02, 0.01], [0.1, 0.1, 0.1])
         self.offset = 0
 
         # Config for trajectory controllers
@@ -152,7 +152,6 @@ class Drivetrain(Subsystem):
         )
         self._theta = raw_theta
         self._theta_odom = self._theta + self.offset
-        print(self._theta_odom)
         self._vx_local = np.array([vx, vy])
 
         self.compute_odom(dt)

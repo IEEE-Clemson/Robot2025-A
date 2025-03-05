@@ -114,7 +114,7 @@ class MoveCommand(commands2.Command):
 
         self._trajectory_controller = PPHolonomicDriveController(
             pid_consts_vxy,
-            PIDConstants(5, 1.0, 0.5, 3),
+            PIDConstants(6, 0.3, 0, 3),
         )
 
         self.addRequirements(drivetrain)
@@ -169,7 +169,7 @@ def __trapezoidal_move_trajectory(
     start = Pose2d(start.x, start.y, rot)
     end = Pose2d(x, y, rot)
     waypoints = PathPlannerPath.waypointsFromPoses([start, end])
-    constraints = PathConstraints(0.2, 0.5, 2 * math.pi, 2 * math.pi, unlimited=False)
+    constraints = PathConstraints(0.2, 0.5, 3.0, 2 * math.pi, unlimited=False)
     path = PathPlannerPath(
         waypoints,
         constraints,

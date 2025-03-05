@@ -17,6 +17,7 @@ from wpimath.trajectory import (
     TrapezoidProfileRadians,
 )
 
+# python -m tools.auto_demo
 
 def pose_from_inches(x: float, y: float, theta: float):
     return Pose2d.fromFeet(x / 12, y / 12, Rotation2d.fromDegrees(theta))
@@ -58,7 +59,7 @@ def sweep_gems_trajectory(drivetrain: Drivetrain):
     return trajectory
 
 def sweep_gems_trajectory2(drivetrain: Drivetrain):
-    x_i = 12
+    x_i = 18
     x_f = 48
     y_i = 35.5
     dy = -8
@@ -73,28 +74,38 @@ def sweep_gems_trajectory2(drivetrain: Drivetrain):
 
 drivetrain_hal = DrivetrainI2C()
 drivetrain = Drivetrain(DrivetrainConfig(), drivetrain_hal)
-drivetrain.reset_odom_inches(32.25, 8, -90)
 drivetrain.drive_raw_local(0, 0, 0)
 drivetrain.periodic()
+drivetrain.reset_odom_inches(32.25, 8, -90)
 
 vision_config = VisionConfig()
 vision_config.should_display = False
-vision_config.dev_index = 1
+vision_config.dev_index = 0
 vision = Vision(vision_config)
 vision.add_pose2d_callback = drivetrain.pose_estimator.add_vision_pose
 sleep(1)
-auto_command = move_to_inches(drivetrain,            32.25, 22.5,   -90) \
-                .andThen(move_to_inches(drivetrain,  24,    22.5,     0)) \
-                .andThen(move_to_inches(drivetrain,  4,     22.5,     0)) \
-                .andThen(commands2.WaitCommand(3).ignoringDisable(True)) \
-                .andThen(move_to_inches(drivetrain,  47,    22.5,     0)) \
-                .andThen(move_to_inches(drivetrain,  67,    22.5,     0)) \
-                .andThen(move_to_inches(drivetrain,  43,    22.5,     0)) \
-                .andThen(move_to_inches(drivetrain,  43,    35.5,     0)) \
-                .andThen(move_to_inches(drivetrain,  12,    35.5,     0)) \
-                .andThen(move_to_inches(drivetrain,  18,    32,     -90)) \
-                .andThen(RamseteMove(drivetrain, sweep_gems_trajectory))
+auto_command = (
+        commands2.WaitCommand(1).ignoringDisable(True)
+        .andThen(move_to_inches(drivetrain,            32.25, 22.5,   -90))
+        .andThen(move_to_inches(drivetrain,  24,    22.5,     0))
+        .andThen(move_to_inches(drivetrain,  4,     22.5,     0))
+        .andThen(commands2.WaitCommand(3).ignoringDisable(True)) 
+        #.andThen(move_to_inches(drivetrain,  47,    22.5,     0))
+        #.andThen(move_to_inches(drivetrain,  67,    22.5,     0))
+        # Cave
+        .andThen(move_to_inches(drivetrain,  84,    22.5,     0))
+        .andThen(move_to_inches(drivetrain,  84,    33.5,     0))
+        .andThen(move_to_inches(drivetrain,  74,    35.5,     0))
+        .andThen(move_to_inches(drivetrain,  74,    11.5,     0))
+        .andThen(move_to_inches(drivetrain,  84,    11.5,     0))
+        .andThen(move_to_inches(drivetrain,  84,    22.5,     0))
 
+        .andThen(move_to_inches(drivetrain,  43,    22.5,     0))
+        .andThen(move_to_inches(drivetrain,  43,    35.5,     0))
+        .andThen(move_to_inches(drivetrain,  12,    35.5,     0))
+        .andThen(move_to_inches(drivetrain,  12,    32,       0))
+        .andThen(sweep_gems_trajectory2(drivetrain))
+)
 
 auto_command2 = move_to_inches(drivetrain,            12, 35.5,   0) \
                 .andThen(sweep_gems_trajectory2(drivetrain))
@@ -115,5 +126,5 @@ def update_thread():
             sleep(to_sleep)
 
 
-auto_command2.schedule()
+auto_command.schedule()
 update_thread()
