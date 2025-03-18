@@ -9,3 +9,10 @@ float clamp(float x, float min_val, float max_val)
     else
         return x;
 }
+
+float max(float x, float y) {
+    if(x > y)
+        return x;
+    else
+        return y;
+}

@@ -28,6 +28,17 @@
         "stdlib.h": "c",
         "stdio_semihosting.h": "c",
         "resets.h": "c",
-        "i2c.h": "c"
+        "i2c.h": "c",
+        "bit": "cpp",
+        "*.tcc": "cpp",
+        "string_view": "cpp",
+        "random": "cpp",
+        "format": "cpp",
+        "istream": "cpp",
+        "limits": "cpp",
+        "numeric": "cpp",
+        "valarray": "cpp",
+        "atomic": "cpp",
+        "compare": "cpp"
     }
 }

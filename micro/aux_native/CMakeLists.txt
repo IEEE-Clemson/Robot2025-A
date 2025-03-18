@@ -10,11 +10,12 @@ pico_sdk_init()
 include_directories(drivetrain_native include)
 
 add_executable(drivetrain_native 
-    src/main.c
+    src/main.cpp
     src/encoder.c
     src/pid_control.c
     src/util.c
-    src/pi_motor.c)
+    src/pi_motor.c
+    src/accel_stepper.cpp)
 target_compile_options(drivetrain_native PRIVATE -Wall -Wextra)
 
 pico_generate_pio_header(drivetrain_native 
