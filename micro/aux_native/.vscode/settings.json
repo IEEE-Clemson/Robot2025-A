@@ -1,0 +1,33 @@
+{
+    // These settings tweaks to the cmake plugin will ensure
+    // that you debug using cortex-debug instead of trying to launch
+    // a Pico binary on the host
+    "cmake.options.statusBarVisibility": "hidden",
+    "cmake.buildBeforeRun": true,
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "files.associations": {
+        "encoder.h": "c",
+        "encoder.pio.h": "c",
+        "pid_control.h": "c",
+        "mutex": "cpp",
+        "pi_motor.h": "c",
+        "bmi270.h": "c",
+        "gpio.h": "c",
+        "critical_section.h": "c",
+        "stdio.h": "c",
+        "cyw43_arch.h": "c",
+        "adc.h": "c",
+        "i2c_slave.h": "c",
+        "functional": "c",
+        "cstdint": "cpp",
+        "pwm.h": "c",
+        "madgwick_filter.h": "c",
+        "comm.h": "c",
+        "config.h": "c",
+        "watchdog.h": "c",
+        "stdlib.h": "c",
+        "stdio_semihosting.h": "c",
+        "resets.h": "c",
+        "i2c.h": "c"
+    }
+}
