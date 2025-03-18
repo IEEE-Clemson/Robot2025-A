@@ -14,6 +14,7 @@
 #include "pi_motor.h"
 #include "pid_control.h"
 #include "comm.h"
+#include "accel_stepper.h"
 #include <stdlib.h>
 
 // Buff written to by i2c
@@ -24,9 +25,15 @@ static volatile bool i2c_addr_written;
 // Layout for usage in program
 static volatile struct I2CMemLayout *mem = (volatile struct I2CMemLayout*)(i2c_mem);
 
+// INTAKE
 static struct PIDParams pid_params;
 static struct PIMotor motor_intake;
 
+// DUMPER
+AccelStepper dumper_stepper(AccelStepper::DRIVER, DUMPER_PIN_STEP, DUMPER_PIN_DIR);
+static int dumper_state = 0; // 0 -> Idle, 1 -> Lifting, 2 -> Shaking, 3 -> Retracting
+static absolute_time_t shake_delay;
+static bool shaking_up;
 
 static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
@@ -88,6 +95,69 @@ static void update_local_vel() {
 static void update_target_vel() {
     motor_intake.setpoint = (float)(mem->target_intake_v) * MAX_V / INT16_MAX;
 }
+
+static void init_dumper() {
+    dumper_stepper.disableOutputs();
+    dumper_stepper.setAcceleration(DUMPER_ACCEL);
+    dumper_stepper.setAcceleration(DUMPER_MAX_VEL);
+}
+
+static void update_dumper() {
+    absolute_time_t time = get_absolute_time();
+    if(dumper_state == 0) {
+        // IDLE STATE
+        if(mem->dumper_deploy == RTRUE) {
+            mem->dumper_deploy = 0;
+            dumper_stepper.enableOutputs();
+            dumper_state = 1;
+        }
+    } else if(dumper_state == 1) {
+        // LIFTING STATE
+        dumper_stepper.run();
+        if(dumper_stepper.distanceToGo() == 0) {
+            // Transition to shake state
+            shake_delay = delayed_by_ms(time, 4000);
+            dumper_state = 2;
+        }
+    } else if(dumper_state == 2) {
+        // SHAKE STATE
+
+        dumper_stepper.run();
+        if(dumper_stepper.distanceToGo() == 0) {
+            if(time > shake_delay) {
+                dumper_state = 3;
+                dumper_stepper.moveTo(0);
+            } else if(shaking_up) {
+                shaking_up = !shaking_up;
+                dumper_stepper.moveTo(DUMPER_TARGET_POS - DUMPER_TARGET_POS);
+            } else {
+                shaking_up = !shaking_up;
+                dumper_stepper.moveTo(DUMPER_TARGET_POS + DUMPER_TARGET_POS);
+            }
+        }
+    } else if (dumper_state == 3) {
+        // DESCENDING STATE
+
+        dumper_stepper.run();
+        if(dumper_stepper.distanceToGo() == 0) {
+            dumper_state = 0;
+            dumper_stepper.disableOutputs();
+        }
+    } else {
+        dumper_state = 0;
+    }
+    mem->dumper_active = dumper_state != 0;
+}
+
+static void init_servos() {
+
+}
+
+static void update_servos() {
+
+}
+
+
 int main() {
     float dt;
     absolute_time_t time, time_to_sleep;
@@ -117,25 +187,35 @@ int main() {
     setup_slave();
     printf("Motor init\n");
     init_intake();
+    init_dumper();
+    init_servos();
+
     watchdog_update();
     
     dt = 1.0f / FREQ;
-    
+
+    time = get_absolute_time();
+    time_to_sleep = delayed_by_ms(time, 1000 / FREQ);
     while(true) {
         time = get_absolute_time();
-        time_to_sleep = delayed_by_ms(time, 1000 / FREQ);
-        pi_motor_update(&motor_intake, dt);
-        
-        update_local_vel();
-        update_target_vel();
+        if(time_to_sleep > time) {
+            time_to_sleep = delayed_by_ms(time, 1000 / FREQ);
+            pi_motor_update(&motor_intake, dt);
+            
+            update_local_vel();
+            update_target_vel();
 
-        // Blink led for heartbeat
-        i = (i + 1) % 100;
-        if(i == 0) {
-            // This is a no-op if usb is disconnected
-            printf("Motor Outs: %.1f\n", motor_intake.out);
-            printf("Encoder Vel: %.1f\n", motor_intake.cur_vel);
-            led = !led;
+            // Blink led for heartbeat
+            i = (i + 1) % 100;
+            if(i == 0) {
+                // This is a no-op if usb is disconnected
+                printf("Motor Outs: %.1f\n", motor_intake.out);
+                printf("Encoder Vel: %.1f\n", motor_intake.cur_vel);
+                led = !led;
+        }
+        update_dumper();
+        update_servos();
+        
 #ifdef PICO_W
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
 #else
