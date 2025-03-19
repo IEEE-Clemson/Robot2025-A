@@ -21,6 +21,7 @@
 static volatile uint8_t i2c_mem[BUFF_SIZE];
 static volatile uint8_t i2c_mem_addr;
 static volatile bool i2c_addr_written;
+static volatile absolute_time_t i2c_last_heartbeat;
 
 // Layout for usage in program
 static volatile struct I2CMemLayout *mem = (volatile struct I2CMemLayout*)(i2c_mem);
@@ -37,6 +38,8 @@ static bool shaking_up;
 
 static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
+    i2c_last_heartbeat = get_absolute_time();
+
     switch (event) {
     case I2C_SLAVE_RECEIVE: // master has written some data
         if (!i2c_addr_written) {
@@ -65,6 +68,10 @@ static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_ev
     default:
         break;
     }
+}
+
+static bool is_heartbeat_alive() {
+    return absolute_time_diff_us(get_absolute_time(), i2c_last_heartbeat) > 500'000;
 }
 
 static void setup_slave() {
@@ -198,6 +205,15 @@ int main() {
     time_to_sleep = delayed_by_ms(time, 1000 / FREQ);
     while(true) {
         time = get_absolute_time();
+
+        // Reset if heartbeat expired
+        if(!is_heartbeat_alive()) {
+            mem->dumper_deploy = 0;
+            mem->target_intake_v = 0;
+            mem->beacon_pos = 0;
+            mem->box_mover_pos = 0;
+        }
+
         if(time_to_sleep > time) {
             time_to_sleep = delayed_by_ms(time, 1000 / FREQ);
             pi_motor_update(&motor_intake, dt);
