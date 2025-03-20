@@ -54,6 +54,8 @@ static const int BOX_MOVER_PIN_PWM = 5;
 static const int DUMPER_PIN_DIR = 6;
 // Dumper Stepper STEP pin
 static const int DUMPER_PIN_STEP = 7;
+// Dumper stepper EN pin
+static const int DUMPER_PIN_EN = 8;
 
 // Start light sense pin
 static const int START_PIN_SENSE = 28;
@@ -63,14 +65,14 @@ static const int PIN_ARMED = 27;
 
 // DUMPER CONFIG
 // Acceleration in steps per second per second 
-static const int DUMPER_ACCEL = 1200;
+static const int DUMPER_ACCEL = 8000;
 // Max steps per second
-static const int DUMPER_MAX_VEL = 800;
+static const int DUMPER_MAX_VEL = 6000;
 
 // Target steps for dumping
-static const int DUMPER_TARGET_POS = 2000;
+static const int DUMPER_TARGET_POS = -3000;
 // Shake steps
-static const int DUMPER_SHAKE_STEPS = 10;
+static const int DUMPER_SHAKE_STEPS = 15;
 
 
 #ifdef __cplusplus

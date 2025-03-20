@@ -105,8 +105,10 @@ static void update_target_vel() {
 
 static void init_dumper() {
     dumper_stepper.disableOutputs();
+    dumper_stepper.setEnablePin(DUMPER_PIN_EN);
+    dumper_stepper.setPinsInverted(false, false, true);
     dumper_stepper.setAcceleration(DUMPER_ACCEL);
-    dumper_stepper.setAcceleration(DUMPER_MAX_VEL);
+    dumper_stepper.setMaxSpeed(DUMPER_MAX_VEL);
 }
 
 static void update_dumper() {
@@ -115,14 +117,18 @@ static void update_dumper() {
         // IDLE STATE
         if(mem->dumper_deploy == RTRUE) {
             mem->dumper_deploy = 0;
+            dumper_stepper.setAcceleration(DUMPER_ACCEL);
             dumper_stepper.enableOutputs();
             dumper_state = 1;
+            dumper_stepper.moveTo(DUMPER_TARGET_POS);
         }
     } else if(dumper_state == 1) {
         // LIFTING STATE
         dumper_stepper.run();
         if(dumper_stepper.distanceToGo() == 0) {
             // Transition to shake state
+            dumper_stepper.setAcceleration(60000);
+            dumper_stepper.setMaxSpeed(20000);
             shake_delay = delayed_by_ms(time, 4000);
             dumper_state = 2;
         }
@@ -133,13 +139,15 @@ static void update_dumper() {
         if(dumper_stepper.distanceToGo() == 0) {
             if(time > shake_delay) {
                 dumper_state = 3;
+                dumper_stepper.setMaxSpeed(DUMPER_MAX_VEL);
+                dumper_stepper.setAcceleration(DUMPER_ACCEL);
                 dumper_stepper.moveTo(0);
             } else if(shaking_up) {
                 shaking_up = !shaking_up;
-                dumper_stepper.moveTo(DUMPER_TARGET_POS - DUMPER_TARGET_POS);
+                dumper_stepper.moveTo(DUMPER_TARGET_POS - DUMPER_SHAKE_STEPS);
             } else {
                 shaking_up = !shaking_up;
-                dumper_stepper.moveTo(DUMPER_TARGET_POS + DUMPER_TARGET_POS);
+                dumper_stepper.moveTo(DUMPER_TARGET_POS + DUMPER_SHAKE_STEPS);
             }
         }
     } else if (dumper_state == 3) {
@@ -214,7 +222,7 @@ int main() {
             mem->box_mover_pos = 0;
         }
 
-        if(time_to_sleep > time) {
+        if(time_to_sleep < time) {
             time_to_sleep = delayed_by_ms(time, 1000 / FREQ);
             pi_motor_update(&motor_intake, dt);
             
@@ -228,19 +236,17 @@ int main() {
                 printf("Motor Outs: %.1f\n", motor_intake.out);
                 printf("Encoder Vel: %.1f\n", motor_intake.cur_vel);
                 led = !led;
+            }
+            count++; 
         }
         update_dumper();
         update_servos();
+        watchdog_update();
         
 #ifdef PICO_W
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
 #else
             gpio_put(PICO_DEFAULT_LED_PIN, led);
 #endif
-        }
-
-        count++; 
-        watchdog_update();
-        busy_wait_until(time_to_sleep);
     }
 }

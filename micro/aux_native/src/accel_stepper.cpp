@@ -395,8 +395,11 @@ void AccelStepper::setOutputPins(uint8_t mask)
     else if (_interface == FULL3WIRE || _interface == HALF3WIRE)
 	numpins = 3;
     uint8_t i;
-    for (i = 0; i < numpins; i++)
-    gpio_put(_pin[i], (mask & (1 << i)) ? (~_pinInverted[i]) : (_pinInverted[i]));
+    for (i = 0; i < numpins; i++) {
+        int masked_bit = (mask & (1 << i));
+        int val = masked_bit ? (~_pinInverted[i]) : (_pinInverted[i]);
+        gpio_put(_pin[i], val);
+    }
 }
 
 // 0 pin step function (ie for functional usage)
