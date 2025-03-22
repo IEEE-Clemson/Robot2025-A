@@ -1,8 +1,10 @@
-# drivetrain_native
-Native implementation of the drivetrain using the Pi Pico SDK
+# aux_native
+Native implementation of the auxilliary subsystems (intake, box mover, etc.) using the Pi Pico SDK
 
 ## Building
 ### Requirements
+* cmake
+
 * arm-none-eabi-gcc
     * Windows: Install AArch32 bare-metal target (arm-none-eabi)
                from https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads
@@ -12,6 +14,8 @@ Native implementation of the drivetrain using the Pi Pico SDK
     * Debian / Ubuntu / Raspberry Pi: run `sudo apt install openocd`
         * Add `https://github.com/arduino/OpenOCD/blob/master/contrib/60-openocd.rules` to `/dev/udev/rules.d`
         * Reload udev rules with `sudo udevadm control --reload-rules && sudo udevadm trigger`
+* gdb-multiarch
+    * Windows: 
 * Visual Studio Code with the following extensions:
     * Raspberry Pi Pico
     * C/C++
@@ -46,5 +50,3 @@ Currently, the project is configured to deploy and debug through the SWD port
 
 ## Used codebases
 * I2C Slave for Pico by Valentin Milea (MIT): https://github.com/vmilea/pico_i2c_slave
-* Madgwick Filter by Blake Johnson (MIT): https://github.com/bjohnsonfl/Madgwick_Filter
-* BMI270_SensorAPI by Bosch Sensor Tec (BSD 3): https://github.com/boschsensortec/BMI270_SensorAPI

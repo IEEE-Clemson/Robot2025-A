@@ -6,5 +6,6 @@
     "python.testing.pytestEnabled": true,
     "python.terminal.activateEnvInCurrentTerminal": true,
     "notebook.codeActionsOnSave": {
-    }
+    },
+    "cmake.ignoreCMakeListsMissing": true
 }

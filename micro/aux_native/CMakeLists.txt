@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(PICO_BOARD pico)
+set(PICO_BOARD pico_w)
 
 include(../../pico-sdk/pico_sdk_init.cmake)
 
@@ -10,13 +10,12 @@ pico_sdk_init()
 include_directories(drivetrain_native include)
 
 add_executable(drivetrain_native 
-    src/main.c
+    src/main.cpp
     src/encoder.c
     src/pid_control.c
     src/util.c
     src/pi_motor.c
-    src/madgwick_filter.c
-    src/imu.c)
+    src/accel_stepper.cpp)
 target_compile_options(drivetrain_native PRIVATE -Wall -Wextra)
 
 pico_generate_pio_header(drivetrain_native 
@@ -47,8 +46,8 @@ pico_add_extra_outputs(drivetrain_native)
 # Select USB, UART, or SWD Semihosting for stdio
 # NOTE: Only one can be enabled
 # Use usb if not using pico probe
-pico_enable_stdio_usb(drivetrain_native 0)
+pico_enable_stdio_usb(drivetrain_native 1)
 # Use uart for fast stdio over pico (requires extra wires)
 pico_enable_stdio_uart(drivetrain_native 0)
 # Use semihosting for slower stdio over pico (Only swd connector needed)
-pico_enable_stdio_semihosting(drivetrain_native 1)
+pico_enable_stdio_semihosting(drivetrain_native 0)

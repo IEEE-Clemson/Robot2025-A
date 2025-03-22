@@ -7,19 +7,33 @@ extern "C" {
 
 #include "hardware/i2c.h"
 
-#include "bmi270.h"
 #include "madgwick_filter.h"
 
-struct IMU {
-    struct bmi2_dev bmi;
-    i2c_inst_t *i2c;
+// UNIT CONVERSION
+static const float REG2DEG = 1.0f / 16.0f;
+static const float REG2RAD = 1.0f / 900.0f;
 
+struct BNO055 {
+    i2c_inst_t *i2c;
+    uint8_t addr;
+    float acc_range;
+    uint acc_odr;
+    uint gyr_range;
+    uint gyr_odr;
     struct quaternion q;
 };
 
-void imu_init(struct IMU *imu, i2c_inst_t *i2c, uint8_t sda, uint8_t scl);
-void imu_update(struct IMU *imu, float dt);
-float imu_get_z_radians(struct IMU *imu);
+struct BNO055_GYRO {
+    i2c_inst_t *i2c;
+};
+
+void bno_init(struct BNO055 *bno, i2c_inst_t *i2c, uint8_t sda, uint8_t scl);
+void bno_get_raw_gyr_data(struct BNO055* bno, int16_t *gx, int16_t* gy, int16_t* gz);
+void bno_get_raw_acc_data(struct BNO055* bmi, int16_t *ax, int16_t* ay, int16_t*az);
+
+void bno_gyro_init(struct BNO055_GYRO *bno, i2c_inst_t *i2c, uint8_t sda, uint8_t scl);
+int bno_gyro_get_euler_angles_raw(struct BNO055_GYRO* bno, int16_t *roll, int16_t* pitch, int16_t* yaw);
+void bno_gyro_reset(struct BNO055_GYRO* bmi);
 
 #ifdef __cplusplus
 }

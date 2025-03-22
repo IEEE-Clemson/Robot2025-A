@@ -16,18 +16,18 @@ import cv2
 from wpimath.controller import PIDController
 
 
-from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
+from cu_hal.drivetrain.drivetrain_i2c import DrivetrainI2C
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
 
 # Define the server address and port
-HOST = "192.168.1.100"  # The server's hostname or IP address
-PORT = 8080  # The port used by the server
+# HOST = "192.168.1.100"  # The server's hostname or IP address
+# PORT = 8080  # The port used by the server
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-sock.connect((HOST, PORT))
+# sock.connect((HOST, PORT))
 
-drivetrain = Drivetrain(DrivetrainConfig(), DrivetrainWifi(sock))
+drivetrain = Drivetrain(DrivetrainConfig(), DrivetrainI2C())
 
 # cur_ref_x_vel = 0
 # cur_ref_y_vel = 0
@@ -87,8 +87,8 @@ class RotateCommand(commands2.Command):
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         detections = detector.detect(gray)
         # show image
-        cv2.imshow('Camera Feed:', image)
-        cv2.waitKey(1)
+        # cv2.imshow('Camera Feed:', image)
+        # cv2.waitKey(1)
 
         # If no tag is detected, wait
         if (len(detections) == 0): 

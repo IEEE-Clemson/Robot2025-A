@@ -6,47 +6,51 @@ FREQ = 200
 
 # MOTOR PIN CONFIG
 # These should be constant and not configurable from host
-FL_PIN_A = 15
+# Motor 1:
+FL_PIN_A = 10
 "Front left encoder A channel pin"
-FL_PIN_B = 14
+FL_PIN_B = 11
 "Front left encoder B channel pin"
-FL_PIN_F = 6
-"Front left motor forward pin"
-FL_PIN_R = 7
-"Front left motor reverse pin"
+FL_PWM_PIN = 6
+"Front left motor PWM pin"
+FL_DIR_PIN = 2
+"Front left motor direction pin"
 FL_INVERTED = False
 "Front left motor inverted"
 
-FR_PIN_A = 19
-"Front right encoder A channel pin"
-FR_PIN_B = 18
-"Front right encoder B channel pin"
-FR_PIN_F = 10
-"Front right motor forward pin"
-FR_PIN_R = 11
-"Front right motor reverse pin"
-FR_INVERTED = True
-"Front right motor inverted"
-
-BL_PIN_A = 17
+# Motor 2:
+BL_PIN_A = 12
 "Back left encoder A channel pin"
-BL_PIN_B = 16
+BL_PIN_B = 13
 "Back left encoder B channel pin"
-BL_PIN_F = 9
-"Back left motor forward pin"
-BL_PIN_R = 8
-"Back left motor reverse pin"
+BL_PWM_PIN = 7
+"Back left motor PWM pin"
+BL_DIR_PIN = 3
+"Back left motor direction pin"
 BL_INVERTED = False
 "Back left motor inverted"
 
-BR_PIN_A = 21 #18
+# Motor 3:
+FR_PIN_A = 14
+"Front right encoder A channel pin"
+FR_PIN_B = 15
+"Front right encoder B channel pin"
+FR_PWM_PIN = 8
+"Front right motor PWM pin"
+FR_DIR_PIN = 4
+"Front right motor direction pin"
+FR_INVERTED = True
+"Front right motor inverted"
+
+# Motor 4:
+BR_PIN_A = 16 #18
 "Back right encoder A channel pin"
-BR_PIN_B = 20 #19
+BR_PIN_B = 17 #19
 "Back right encoder B channel pin"
-BR_PIN_F = 13 #10
-"Back right motor forward pin"
-BR_PIN_R = 12 #11
-"Back right motor reverse pin"
+BR_PWM_PIN = 9 #10
+"Back right motor PWM pin"
+BR_DIR_PIN = 5 #11
+"Back right motor direction pin"
 BR_INVERTED = True
 "Back right motor inverted"
 
