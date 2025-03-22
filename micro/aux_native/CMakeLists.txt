@@ -46,8 +46,8 @@ pico_add_extra_outputs(drivetrain_native)
 # Select USB, UART, or SWD Semihosting for stdio
 # NOTE: Only one can be enabled
 # Use usb if not using pico probe
-pico_enable_stdio_usb(drivetrain_native 1)
+pico_enable_stdio_usb(drivetrain_native 0)
 # Use uart for fast stdio over pico (requires extra wires)
-pico_enable_stdio_uart(drivetrain_native 0)
+pico_enable_stdio_uart(drivetrain_native 1)
 # Use semihosting for slower stdio over pico (Only swd connector needed)
 pico_enable_stdio_semihosting(drivetrain_native 0)
