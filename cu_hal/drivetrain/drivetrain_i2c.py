@@ -4,7 +4,6 @@ import comms
 from cu_hal.interfaces import DrivetrainHAL
 import struct
 import smbus2
-bus = smbus2.SMBus(1)
 V_MAX = 2.0
 O_MAX = 8.0
 REG2RAD = 1/900.0
@@ -13,17 +12,18 @@ INT16_MAX = 1 << 15
 class DrivetrainI2C(DrivetrainHAL):
     """Implementation of the drivetrain HAL for physical hardware using UART communication
     """
-    def __init__(self):
+    def __init__(self, bus = smbus2.SMBus(1)):
         super().__init__()
         self.offset = 0
         vx, vy, theta = self.get_local_velocity()
         self.offset = theta
+        self.bus = bus
 
     def get_local_velocity(self) -> Tuple[float, float, float]:
         byte_data = None
         for i in range(5):
             try:
-                byte_data = bytes(bus.read_i2c_block_data(0x41, 6, 8))
+                byte_data = bytes(self.bus.read_i2c_block_data(0x41, 6, 8))
                 break
             except OSError:
                 sleep(0.02)
@@ -45,7 +45,7 @@ class DrivetrainI2C(DrivetrainHAL):
         data = struct.pack("<hhh", vx_raw, vy_raw, omega_raw)
         for i in range(5):
             try:
-                bus.write_i2c_block_data(0x41, 0, data)
+                self.bus.write_i2c_block_data(0x41, 0, data)
                 break
             except OSError:
                 sleep(0.02)
