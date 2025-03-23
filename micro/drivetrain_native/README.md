@@ -3,6 +3,8 @@ Native implementation of the drivetrain using the Pi Pico SDK
 
 ## Building
 ### Requirements
+* cmake
+
 * arm-none-eabi-gcc
     * Windows: Install AArch32 bare-metal target (arm-none-eabi)
                from https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads
@@ -12,6 +14,8 @@ Native implementation of the drivetrain using the Pi Pico SDK
     * Debian / Ubuntu / Raspberry Pi: run `sudo apt install openocd`
         * Add `https://github.com/arduino/OpenOCD/blob/master/contrib/60-openocd.rules` to `/dev/udev/rules.d`
         * Reload udev rules with `sudo udevadm control --reload-rules && sudo udevadm trigger`
+* gdb-multiarch
+    * Windows: 
 * Visual Studio Code with the following extensions:
     * Raspberry Pi Pico
     * C/C++

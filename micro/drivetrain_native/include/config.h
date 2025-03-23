@@ -90,7 +90,7 @@ static const bool BR_INVERTED = true;
 // Radius of the wheel in meters
 static const float WHEEL_RADIUS = 0.03f;
 // Distance from center to wheel in x direction in meters
-static const float WHEEL_DIST_X = 0.06f;
+static const float WHEEL_DIST_X = 0.07f;
 // Distance from center to wheel in y direction in meters
 static const float WHEEL_DIST_Y = 0.1075f;
 
