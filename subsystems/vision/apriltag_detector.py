@@ -1,5 +1,5 @@
 from multiprocessing import Queue
-from time import time
+from time import time, time_ns
 from typing import List, Tuple
 import numpy as np
 import cv2
@@ -57,14 +57,13 @@ def apriltag_detector_main(config: VisionConfig, queue: Queue):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
     cap.set(cv2.CAP_PROP_FPS, 100)
-    cap.set(cv2.CAP_PROP_EXPOSURE, 200)
     cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
-    cap.set(cv2.CAP_PROP_EXPOSURE, 500)
+    cap.set(cv2.CAP_PROP_EXPOSURE, 50)
     
     detector = Detector(families="tag36h11")
     n = 0
     while True:
-        t = time()
+        t = time_ns()
         ret, image = cap.read()
         if image is None:
             continue

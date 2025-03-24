@@ -4,6 +4,7 @@ https://github.com/wpilibsuite/allwpilib/blob/main/wpimath/src/main/java/edu/wpi
 """
 
 from math import pi, sqrt
+from time import time_ns
 from typing import List, Tuple
 import numpy as np
 from .pose import pose_add, pose_exp, pose_log, pose_sub
@@ -11,10 +12,15 @@ from wpimath.geometry import Pose2d
 
 
 def clamp(x, x_min, x_max):
-    return max(x_min, min(x, x_max))
+    if x < x_min:
+        return x_min
+    elif x_max < x:
+        return x_max
+    else:
+        return x 
 
 
-def floorkey_buf(buf: List, t: float) -> int | None:
+def floorkey_buf(buf: List, t: int) -> int | None:
     """Gets the index of the element with the timestamp just before the given time
 
     Args:
@@ -37,7 +43,7 @@ def floorkey_buf(buf: List, t: float) -> int | None:
 
 
 def sample_timestamp_buf(
-    buf: List[Tuple[float, np.ndarray, float]], t: float
+    buf: List[Tuple[float, np.ndarray, float]], t: int
 ) -> Tuple[np.ndarray, float] | None:
     """Samples a buffer that is labeled with timestamps
     Note: Cannot sample before the first element in the buffer
@@ -116,7 +122,7 @@ class PoseEstimator:
         state_stddev = np.array(state_stddev).reshape(-1, 1)
         vision_stddev = np.array(vision_stddev).reshape(-1, 1)
 
-        self.sample_limit = 0.5  # Retain samples from up to 0.5 seconds ago
+        self.sample_limit = 0.5 * 1e9  # Retain samples from up to 0.5 seconds ago
         "Limit on the age of odometry samples"
 
         self._k_vision = np.zeros((3, 3))
@@ -228,7 +234,7 @@ class PoseEstimator:
             return
         self._vision_buf = self._vision_buf[i:]
 
-    def add_vision_measurements(self, pos_x: np.ndarray, pos_theta: float, t: float):
+    def add_vision_measurements(self, pos_x: np.ndarray, pos_theta: float, t: int):
         """Adds a vision measurement to the pose estimator
         Note the vision pose should be transformed to have the 
         same coordinate system as the center of the robot
@@ -240,6 +246,8 @@ class PoseEstimator:
         """
         if len(self._odom_buf) == 0 or self._odom_buf[0][0] - self.sample_limit > t:
             return
+        if time_ns() - t > 0.100e9:
+            return
         self._remove_stale_vision_samples()
 
         odom_sample = sample_timestamp_buf(self._odom_buf, t)
@@ -250,7 +258,7 @@ class PoseEstimator:
         vision_sample = self.sample_at(t)
         if vision_sample == None:
             return
-        vision_sample_x, vision_sample_theta = vision_sample
+        vision_sample_x, vision_sample_theta = pos_x, pos_theta 
 
         # Compute the twist and scale it by the confidence value for the vision procedure
         twist_x, twist_theta = pose_log(

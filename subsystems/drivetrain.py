@@ -46,9 +46,9 @@ class Drivetrain(Subsystem):
 
         self.slew_rate_xy = 0.75
         self.slew_rate_theta = 1.0
-        self.max_speed = 0.4
+        self.max_speed = 0.2
         self.max_omega = 1.0
-        self.pose_estimator = PoseEstimator([0.02, 0.02, 0.01], [0.1, 0.1, 0.1])
+        self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.15, 0.15, 0.15])
         self.offset = 0
 
         # Config for trajectory controllers
@@ -158,8 +158,9 @@ class Drivetrain(Subsystem):
         self.compute_odom(dt)
         self._prev_pose = self.pose()
         self.pose_estimator.update_with_time(
-            self._x_odom, self._theta_odom, time.time()
+            self._x_odom, self._theta_odom, time.time_ns()
         )
+        #print(self.pose())
 
     def drive_raw_local(self, vx, vy, omega):
         if abs(vx) > self.max_speed:
