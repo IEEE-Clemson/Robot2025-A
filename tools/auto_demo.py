@@ -67,16 +67,16 @@ def sweep_gems_trajectory(drivetrain: Drivetrain):
     return trajectory
 
 def sweep_gems_trajectory2(drivetrain: Drivetrain):
-    x_i = 18
-    x_f = 48
-    y_i = 35.5
-    dy = -8
+    x_i = 10
+    x_f = 46
+    y_i = 35.5-8
+    dy = -6
     n = 4
     cmds = []
     for i in range(n):
-        cmd = move_to_inches(drivetrain, x_f, y_i + i*dy, 0) \
-            .andThen(move_to_inches(drivetrain, x_i, y_i + i*dy, 0)) \
-            .andThen(move_to_inches(drivetrain, x_i, y_i + (i+1)*dy, 0))
+        cmd = move_to_inches(drivetrain, x_f, y_i + i*dy, 0, accuracy=0.05, speed=0.4) \
+            .andThen(move_to_inches(drivetrain, x_i, y_i + i*dy, 0, accuracy=0.05, speed=0.4)) \
+            .andThen(move_to_inches(drivetrain, x_i, y_i + (i+1)*dy, 0, accuracy=0.05, speed=0.4))
         cmds.append(cmd)
     return commands2.SequentialCommandGroup(*cmds).ignoringDisable(True)
 
@@ -93,7 +93,7 @@ intake = Intake(aux_hal)
 
 vision_config = VisionConfig()
 vision_config.should_display = False
-vision_config.dev_index = 0
+vision_config.dev_index = 1
 #vision_config.should_display = True
 vision = Vision(vision_config)
 vision.add_pose2d_callback = drivetrain.pose_estimator.add_vision_pose
@@ -128,32 +128,35 @@ auto_command = (
 drivetrain.reset_odom_inches(31.5, 6, 0)
 auto_command2 = (
     commands2.WaitCommand(1).ignoringDisable(True)
-    #.andThen(start_intake(intake))
+    .andThen(start_intake(intake))
     .andThen(move_to_inches(drivetrain,            31.5, 12,   -20))
     .andThen(move_to_inches(drivetrain,            33, 9,    180))
     .andThen(move_to_inches(drivetrain,            10, 7,    180))
 
     .andThen(move_to_inches(drivetrain,            7, 24.0,    0)) #Beacon
-    # .andThen(move_to_inches(drivetrain,            16, 24.0,   0))
-    # .andThen(travel_beacon(beacon))
-    # .andThen(move_to_inches(drivetrain,  5,     24.0,     0, 0.1))
-    # .andThen(extend_beacon(beacon))
-    # .andThen(move_to_inches(drivetrain,  8,     24.0,     0, 0.1))
-    # .andThen(retract_beacon(beacon)) 
-    # .andThen(move_to_inches(drivetrain,  7,     24.0,     0, 0.1))
+    .andThen(move_to_inches(drivetrain,            16, 24.0,   0))
+    .andThen(travel_beacon(beacon))
+    .andThen(move_to_inches(drivetrain,  5,     24.0,     0, 0.1))
+    .andThen(extend_beacon(beacon))
+    .andThen(move_to_inches(drivetrain,  8,     24.0,     0, 0.1))
+    .andThen(retract_beacon(beacon)) 
+    .andThen(move_to_inches(drivetrain,  7,     24.0,     0, 0.1))
 
-    # Nebulite box move
-    # .andThen(move_to_inches(drivetrain,  7,      42.0,     0))
-    # .andThen(move_to_inches(drivetrain,  14,     42.0,     0))
-    # .andThen(move_to_inches(drivetrain,  14,     32.0,     0))
-    # .andThen(move_to_inches(drivetrain,  36,     32.0,     0))
-    # .andThen(move_to_inches(drivetrain,  36,     38.0,     0))
+     #Nebulite box move
+    .andThen(move_to_inches(drivetrain,  7,      42.0,     0))
+    .andThen(move_to_inches(drivetrain,  14,     42.0,     0))
+    .andThen(move_to_inches(drivetrain,  14,     32.0,     0))
+    .andThen(move_to_inches(drivetrain,  36,     32.0,     0))
+    .andThen(move_to_inches(drivetrain,  36,     38.0,     0))
     .andThen(move_to_inches(drivetrain,  10,     38.0,     0))
 
     # Sweep
     .andThen(move_to_inches(drivetrain,  14,     35.0,     60))
     .andThen(move_to_inches(drivetrain,  28,     35.0,     60))
-    .andThen(move_to_inches(drivetrain,  46,     38.0,     0))
+    .andThen(move_to_inches(drivetrain,  47,     38.0,     0))
+    .andThen(move_to_inches(drivetrain,  10,     38.0,     0))
+    .andThen(move_to_inches(drivetrain,  10,     30,     0))
+    .andThen(sweep_gems_trajectory2(drivetrain))
     .andThen(stop_intake(intake))
 )
 def update_thread():

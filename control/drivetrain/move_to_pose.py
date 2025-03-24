@@ -105,12 +105,14 @@ class MoveCommand(commands2.Command):
         self,
         drivetrain: Drivetrain,
         trajectory_func: Callable[[Drivetrain], PathPlannerTrajectory],
+        accuracy = 0.01
     ):
         self._trajectory_gen = trajectory_func
         self._drivetrain = drivetrain
         self._trajectory = None
         self._start_time = time()
         pid_consts_vxy = PIDConstants(4, 0.4, 0.1, 1)
+        self.accuracy = accuracy
 
         self._trajectory_controller = PPHolonomicDriveController(
             pid_consts_vxy,
@@ -142,13 +144,12 @@ class MoveCommand(commands2.Command):
         cur_time = time() - self._start_time
         pose_diff = self._trajectory.getEndState().pose - self._drivetrain.pose()
 
-        xy_tol = 0.01
         theta_tol = 0.05
         vx, vy, omega = self._drivetrain.get_local_vel()
         return (
             cur_time > self._trajectory.getTotalTimeSeconds()
-            and abs(pose_diff.x) < xy_tol
-            and abs(pose_diff.y) < xy_tol
+            and abs(pose_diff.x) < self.accuracy
+            and abs(pose_diff.y) < self.accuracy
             and abs(pose_diff.rotation().radians()) < theta_tol
             and math.hypot(vx, vy) < 0.2
             and abs(omega) < 0.05
@@ -187,7 +188,7 @@ def __trapezoidal_move_trajectory(
 
 
 def move_to_meters(
-    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.3
+    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.2
 ) -> MoveCommand:
     return MoveCommand(
         drivetrain,
@@ -197,11 +198,12 @@ def move_to_meters(
 
 
 def move_to_inches(
-    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.3
+    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.2, accuracy = 0.01
 ) -> MoveCommand:
     METERS_TO_INCHES = 39.3701
     return MoveCommand(
         drivetrain,
         lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x / METERS_TO_INCHES, y / METERS_TO_INCHES, theta * math.pi / 180, speed),
+        accuracy = accuracy
     )
 
