@@ -110,11 +110,11 @@ class MoveCommand(commands2.Command):
         self._drivetrain = drivetrain
         self._trajectory = None
         self._start_time = time()
-        pid_consts_vxy = PIDConstants(4, 0.3, 0, 1)
+        pid_consts_vxy = PIDConstants(4, 0.4, 0.1, 1)
 
         self._trajectory_controller = PPHolonomicDriveController(
             pid_consts_vxy,
-            PIDConstants(6, 0.3, 0, 3),
+            PIDConstants(4, 0.05, 3.0, 1),
         )
 
         self.addRequirements(drivetrain)
@@ -151,6 +151,7 @@ class MoveCommand(commands2.Command):
             and abs(pose_diff.y) < xy_tol
             and abs(pose_diff.rotation().radians()) < theta_tol
             and math.hypot(vx, vy) < 0.2
+            and abs(omega) < 0.05
         )
 
     def end(self, interrupted):
@@ -161,7 +162,7 @@ class MoveCommand(commands2.Command):
 
 
 def __trapezoidal_move_trajectory(
-    drivetrain: Drivetrain, x: float, y: float, theta: float
+    drivetrain: Drivetrain, x: float, y: float, theta: float, speed: float
 ) -> PathPlannerPath:
     start = drivetrain.pose()
 
@@ -169,7 +170,7 @@ def __trapezoidal_move_trajectory(
     start = Pose2d(start.x, start.y, rot)
     end = Pose2d(x, y, rot)
     waypoints = PathPlannerPath.waypointsFromPoses([start, end])
-    constraints = PathConstraints(0.2, 0.5, 3.0, 2 * math.pi, unlimited=False)
+    constraints = PathConstraints(speed, 0.5, 1.0, 1*math.pi, unlimited=False)
     path = PathPlannerPath(
         waypoints,
         constraints,
@@ -186,21 +187,21 @@ def __trapezoidal_move_trajectory(
 
 
 def move_to_meters(
-    drivetrain: Drivetrain, x: float, y: float, theta: float
+    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.3
 ) -> MoveCommand:
     return MoveCommand(
         drivetrain,
-        lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x, y, theta),
+        lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x, y, theta, speed),
     )
 
 
 
 def move_to_inches(
-    drivetrain: Drivetrain, x: float, y: float, theta: float
+    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.3
 ) -> MoveCommand:
     METERS_TO_INCHES = 39.3701
     return MoveCommand(
         drivetrain,
-        lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x / METERS_TO_INCHES, y / METERS_TO_INCHES, theta * math.pi / 180),
+        lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x / METERS_TO_INCHES, y / METERS_TO_INCHES, theta * math.pi / 180, speed),
     )
 

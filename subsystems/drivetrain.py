@@ -45,9 +45,9 @@ class Drivetrain(Subsystem):
         self._cur_ref_omega = 0
 
         self.slew_rate_xy = 0.75
-        self.slew_rate_theta = 3.0
+        self.slew_rate_theta = 1.0
         self.max_speed = 0.4
-        self.max_omega = 3.0
+        self.max_omega = 1.0
         self.pose_estimator = PoseEstimator([0.02, 0.02, 0.01], [0.1, 0.1, 0.1])
         self.offset = 0
 
@@ -79,6 +79,7 @@ class Drivetrain(Subsystem):
             ),
         )
         self.prev_time = time.time()
+        self._prev_pose = self.pose()
 
     def reset_odom(self, x: float, y: float, theta: float):
         self._x_odom = np.array([x, y])
@@ -155,9 +156,10 @@ class Drivetrain(Subsystem):
         self._vx_local = np.array([vx, vy])
 
         self.compute_odom(dt)
+        self._prev_pose = self.pose()
         self.pose_estimator.update_with_time(
             self._x_odom, self._theta_odom, time.time()
-        )        
+        )
 
     def drive_raw_local(self, vx, vy, omega):
         if abs(vx) > self.max_speed:
@@ -170,7 +172,8 @@ class Drivetrain(Subsystem):
         self._target_omega = omega
 
     def get_local_vel(self) -> Tuple[float, float, float]:
-        return self._vx_local[0], self._vx_local[1], 0
+        r = self.pose().rotation() - self._prev_pose.rotation() 
+        return self._vx_local[0], self._vx_local[1], r.radians() * 50
 
     @property
     def pose_x(self):

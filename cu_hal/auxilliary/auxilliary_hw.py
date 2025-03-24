@@ -33,31 +33,33 @@ class AuxilliaryHW(AuxilliaryHAL):
         return byte_data
 
     def idle_box(self):
-        self._attempt_write(0x9, 0) # TODO: Implement idle in firmware
+        self._attempt_write(0x9, bytes([0])) # TODO: Implement idle in firmware
 
     def grab_box(self):
-        self._attempt_write(0x9, 1)
+        self._attempt_write(0x9, bytes([1]))
 
     def release_box(self):
-        self._attempt_write(0x9, 2)
+        self._attempt_write(0x9, bytes([2]))
 
     def travel_beacon(self):
-        self._attempt_write(0x8, 1)
+        self._attempt_write(0x8, bytes([1]))
 
     def extend_beacon(self):
-        self._attempt_write(0x8, 2)
+        self._attempt_write(0x8, bytes([2]))
 
     def retract_beacon(self):
-        self._attempt_write(0x8, 0)
+        self._attempt_write(0x8, bytes([0]))
 
     def extend_dropper(self):
-        self._attempt_write(0x6, 0xAA)
+        self._attempt_write(0x6, bytes([0xAA]))
 
     def is_dropper_running(self) -> bool:
-        return int(self._attempt_read(0x7, 1)[0]) == 1
+        data = self._attempt_read(0x7, 1)[0]
+        print(data)
+        return int(data) == 1
 
     def set_intake_speed(self, speed: float):
-        self._attempt_write(0x2, struct.pack("<h", int(speed * MAX_INTAKE_SPEED * INT16_MAX)))
+        self._attempt_write(0x2, struct.pack("<h", int(speed / MAX_INTAKE_SPEED * INT16_MAX)))
 
     def get_intake_speed(self) -> float:
         data = struct.unpack("<h", self._attempt_read(0x7, 1))

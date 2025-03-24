@@ -9,4 +9,4 @@ class VisionConfig:
     cy = 297.29
 
     tag_size = 0.08
-    camera_pose = Transform3d(Translation3d(-0.115, 0.095, 0.235), Rotation3d.fromDegrees(0, 20, 180))
+    camera_pose = Transform3d(Translation3d(-0.07, 0.0825, 0.275), Rotation3d.fromDegrees(0, 20, 180))

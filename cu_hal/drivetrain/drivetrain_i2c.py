@@ -15,9 +15,10 @@ class DrivetrainI2C(DrivetrainHAL):
     def __init__(self, bus = smbus2.SMBus(1)):
         super().__init__()
         self.offset = 0
+        self.bus = bus
         vx, vy, theta = self.get_local_velocity()
         self.offset = theta
-        self.bus = bus
+
 
     def get_local_velocity(self) -> Tuple[float, float, float]:
         byte_data = None
