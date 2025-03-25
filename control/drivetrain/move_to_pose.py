@@ -188,7 +188,7 @@ def __trapezoidal_move_trajectory(
 
 
 def move_to_meters(
-    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.2
+    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.3
 ) -> MoveCommand:
     return MoveCommand(
         drivetrain,
@@ -198,7 +198,7 @@ def move_to_meters(
 
 
 def move_to_inches(
-    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.2, accuracy = 0.01
+    drivetrain: Drivetrain, x: float, y: float, theta: float, speed = 0.3, accuracy = 0.03
 ) -> MoveCommand:
     METERS_TO_INCHES = 39.3701
     return MoveCommand(

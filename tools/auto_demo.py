@@ -4,6 +4,7 @@ from time import sleep, time
 
 from smbus2 import SMBus
 from control.beacon import extend_beacon, retract_beacon, travel_beacon
+from control.dumper import extend_dumper
 from control.intake import start_intake, stop_intake
 from cu_hal.auxilliary.auxilliary_hw import AuxilliaryHW
 from cu_hal.drivetrain.drivetrain_i2c import DrivetrainI2C
@@ -12,6 +13,7 @@ from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
 from cu_hal.drivetrain.drivetrain_sim import DrivetrainSim
 from cu_hal.interfaces import AuxilliaryHAL
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
+from subsystems.dumper import Dumper
 from subsystems.intake import Intake
 from subsystems.vision import Vision, VisionConfig
 from subsystems.beacon import Beacon
@@ -67,7 +69,7 @@ def sweep_gems_trajectory(drivetrain: Drivetrain):
     return trajectory
 
 def sweep_gems_trajectory2(drivetrain: Drivetrain):
-    x_i = 10
+    x_i = 6
     x_f = 46
     y_i = 35.5-8
     dy = -6
@@ -90,10 +92,11 @@ drivetrain.reset_odom_inches(32.25, 8, -90)
 aux_hal = AuxilliaryHW(bus)
 beacon = Beacon(aux_hal)
 intake = Intake(aux_hal)
+dumper = Dumper(aux_hal)
 
 vision_config = VisionConfig()
 vision_config.should_display = False
-vision_config.dev_index = 1
+vision_config.dev_index = 0
 #vision_config.should_display = True
 vision = Vision(vision_config)
 vision.add_pose2d_callback = drivetrain.pose_estimator.add_vision_pose
@@ -131,32 +134,50 @@ auto_command2 = (
     .andThen(start_intake(intake))
     .andThen(move_to_inches(drivetrain,            31.5, 12,   -20))
     .andThen(move_to_inches(drivetrain,            33, 9,    180))
-    .andThen(move_to_inches(drivetrain,            10, 7,    180))
+    .andThen(move_to_inches(drivetrain,            30, 6,    180))
+    .andThen(move_to_inches(drivetrain,            10, 6,    180))
 
     .andThen(move_to_inches(drivetrain,            7, 24.0,    0)) #Beacon
     .andThen(move_to_inches(drivetrain,            16, 24.0,   0))
     .andThen(travel_beacon(beacon))
     .andThen(move_to_inches(drivetrain,  5,     24.0,     0, 0.1))
     .andThen(extend_beacon(beacon))
-    .andThen(move_to_inches(drivetrain,  8,     24.0,     0, 0.1))
+    .andThen(move_to_inches(drivetrain,  10,     24.0,     0, 0.1))
     .andThen(retract_beacon(beacon)) 
     .andThen(move_to_inches(drivetrain,  7,     24.0,     0, 0.1))
 
-     #Nebulite box move
+    #  #Nebulite box move
     .andThen(move_to_inches(drivetrain,  7,      42.0,     0))
     .andThen(move_to_inches(drivetrain,  14,     42.0,     0))
     .andThen(move_to_inches(drivetrain,  14,     32.0,     0))
-    .andThen(move_to_inches(drivetrain,  36,     32.0,     0))
-    .andThen(move_to_inches(drivetrain,  36,     38.0,     0))
+    .andThen(move_to_inches(drivetrain,  35,     32.0,     0))
+    .andThen(move_to_inches(drivetrain,  35,     38.0,     0))
     .andThen(move_to_inches(drivetrain,  10,     38.0,     0))
 
-    # Sweep
-    .andThen(move_to_inches(drivetrain,  14,     35.0,     60))
-    .andThen(move_to_inches(drivetrain,  28,     35.0,     60))
-    .andThen(move_to_inches(drivetrain,  47,     38.0,     0))
-    .andThen(move_to_inches(drivetrain,  10,     38.0,     0))
-    .andThen(move_to_inches(drivetrain,  10,     30,     0))
+    # # Sweep
+    .andThen(move_to_inches(drivetrain,  14,     35.0,     60, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  28,     35.0,     60, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  47,     37.5,     0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  10,     37.5,     0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  10,     30,     0, speed=0.4))
     .andThen(sweep_gems_trajectory2(drivetrain))
+
+    # # Dump
+    .andThen(move_to_inches(drivetrain,  16,     42.0,     0))
+    .andThen(move_to_inches(drivetrain,  8,     42.0,     0))
+    .andThen(extend_dumper(dumper))
+
+    # Cave
+    .andThen(move_to_inches(drivetrain,  40,     22.5,     0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  84,     22.5,     0, speed=0.4))
+    # .andThen(move_to_inches(drivetrain,  83,     19,     -45, speed=0.4))
+    # .andThen(move_to_inches(drivetrain,  84,     6,     -45, speed=0.4))
+    # .andThen(move_to_inches(drivetrain,  87,     18,     -90, speed=0.4))
+    # .andThen(move_to_inches(drivetrain,  87,     6,     -90, speed=0.4))
+    # .andThen(move_to_inches(drivetrain,  83,     8,     -90, speed=0.4))
+
+
+
     .andThen(stop_intake(intake))
 )
 def update_thread():
