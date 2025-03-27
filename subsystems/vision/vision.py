@@ -25,6 +25,7 @@ class Vision(Subsystem):
     def __init__(self, config: VisionConfig):
         self._config = config
         self._queue = Queue(maxsize=4096)
+        self._telemetry_counts = [0 for _ in range(5)]
         self.process = Process(target=apriltag_detector_main, args=(config, self._queue))
         self.cur_tags: List[ApriltagResult] = []
         self.cur_pose2d = []
@@ -57,8 +58,20 @@ class Vision(Subsystem):
             )
             x = pose2d.translation().x
             y = pose2d.translation().y
-            if x > 0 and x < 2.1 and y > 0 and y < 2.1:
-                self.cur_pose2d.append(pose2d)
-            
-                if self.add_pose2d_callback is not None:
-                    self.add_pose2d_callback(pose2d, t)
+            if x < 0 or x > 2.2 or y < 0 or y > 1.3:
+                continue
+
+            self.cur_pose2d.append(pose2d)
+        
+            if self.add_pose2d_callback is not None:
+                self.add_pose2d_callback(pose2d, t)
+
+            if tag.id <= 4:
+                self._telemetry_counts[tag.id] += 1 
+       
+    def get_telemetry(self) -> int|None:
+        max_count = max(self._telemetry_counts)
+        if max_count == 0:
+            return None
+        else:
+            return self._telemetry_counts.index(max_count)
