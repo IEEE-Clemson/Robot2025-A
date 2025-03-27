@@ -15,7 +15,8 @@ add_executable(drivetrain_native
     src/pid_control.c
     src/util.c
     src/pi_motor.c
-    src/accel_stepper.cpp)
+    src/accel_stepper.cpp
+    src/music.c)
 target_compile_options(drivetrain_native PRIVATE -Wall -Wextra)
 
 pico_generate_pio_header(drivetrain_native 
@@ -28,7 +29,7 @@ target_link_libraries(drivetrain_native
     pico_stdlib 
     pico_sync
     pico_i2c_slave
-pico_multicore
+    pico_multicore
     hardware_gpio
     hardware_adc
     hardware_pio

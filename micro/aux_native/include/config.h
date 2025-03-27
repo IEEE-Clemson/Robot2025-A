@@ -61,6 +61,8 @@ static const int DUMPER_PIN_EN = 8;
 static const int START_PIN_SENSE = 28;
 // Arm switch pin
 static const int PIN_ARMED = 27;
+// Buzzer Pin
+static const int BUZZER_PIN = 10;
 
 
 // DUMPER CONFIG
