@@ -33,13 +33,13 @@ class AuxilliaryHW(AuxilliaryHAL):
         return byte_data
 
     def idle_box(self):
-        self._attempt_write(0x9, bytes([0])) # TODO: Implement idle in firmware
+        self._attempt_write(0x9, bytes([1])) # TODO: Implement idle in firmware
 
     def grab_box(self):
-        self._attempt_write(0x9, bytes([1]))
+        self._attempt_write(0x9, bytes([0]))
 
     def release_box(self):
-        self._attempt_write(0x9, bytes([2]))
+        self._attempt_write(0x9, bytes([1]))
 
     def travel_beacon(self):
         self._attempt_write(0x8, bytes([1]))

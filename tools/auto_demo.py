@@ -6,6 +6,7 @@ from smbus2 import SMBus
 from control.beacon import extend_beacon, retract_beacon, travel_beacon
 from control.dumper import extend_dumper
 from control.intake import start_intake, stop_intake
+from control.mover import grab_box, release_box
 from cu_hal.auxilliary.auxilliary_hw import AuxilliaryHW
 from cu_hal.drivetrain.drivetrain_i2c import DrivetrainI2C
 from control.drivetrain.move_to_pose import MoveCommand, RamseteMove, move_to_inches
@@ -15,6 +16,7 @@ from cu_hal.interfaces import AuxilliaryHAL
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
 from subsystems.dumper import Dumper
 from subsystems.intake import Intake
+from subsystems.mover import Mover
 from subsystems.vision import Vision, VisionConfig
 from subsystems.beacon import Beacon
 import commands2
@@ -69,14 +71,14 @@ def sweep_gems_trajectory(drivetrain: Drivetrain):
 
 def sweep_gems_trajectory2(drivetrain: Drivetrain):
     x_i = 6
-    x_fs = [47, 84, 47, 39, 39]
-    y_i = 35.5-8
+    x_fs = [47, 84, 47]
+    y_i = 35.5-6
     dy = -5.5
-    n = 5
     cmds = []
-    for i in range(n):
-        cmd = move_to_inches(drivetrain, x_fs[i], y_i + i*dy, 0, accuracy=0.05, speed=0.4) \
-            .andThen(move_to_inches(drivetrain, x_i, y_i + i*dy, 0, accuracy=0.05, speed=0.4)) \
+    for i in range(len(x_fs)):
+        cmd = move_to_inches(drivetrain, x_fs[i], y_i + i*dy, 0, accuracy=0.05, speed=0.4) 
+        if i != len(x_fs) - 1:
+            cmd = cmd.andThen(move_to_inches(drivetrain, x_i, y_i + i*dy, 0, accuracy=0.05, speed=0.4)) \
             .andThen(move_to_inches(drivetrain, x_i, y_i + (i+1)*dy, 0, accuracy=0.05, speed=0.4))
         cmds.append(cmd)
     return commands2.SequentialCommandGroup(*cmds).ignoringDisable(True)
@@ -92,6 +94,8 @@ aux_hal = AuxilliaryHW(bus)
 beacon = Beacon(aux_hal)
 intake = Intake(aux_hal)
 dumper = Dumper(aux_hal)
+mover = Mover(aux_hal)
+
 
 vision_config = VisionConfig()
 vision_config.should_display = False
@@ -143,19 +147,19 @@ auto_command2 = (
     
 
     .andThen(move_to_inches(drivetrain,  7,      42.0,     0)) # Nebulite box move
-    .andThen(move_to_inches(drivetrain,  14,     42.0,     0))
-    .andThen(move_to_inches(drivetrain,  14,     32.0,     0))
-    .andThen(move_to_inches(drivetrain,  35,     32.0,     0))
-    .andThen(move_to_inches(drivetrain,  35,     38.0,     0))
+    .andThen(move_to_inches(drivetrain,  15,     42.0,     0))
+    .andThen(move_to_inches(drivetrain,  15,     32.0,     0))
+    .andThen(move_to_inches(drivetrain,  34.5,     32.0,     0))
+    .andThen(move_to_inches(drivetrain,  34.5,     38.0,     0))
     .andThen(move_to_inches(drivetrain,  10,     38.0,     0))
 
     .andThen(move_to_inches(drivetrain,  47,     37.5,     0, speed=0.4)) # Sweep
-    .andThen(move_to_inches(drivetrain,  10,     37.5,     0, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  10,     30,     0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  12,     37.5,     0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  12,     30,     0, speed=0.4))
     .andThen(sweep_gems_trajectory2(drivetrain))
 
 
-    .andThen(move_to_inches(drivetrain,  16,     43.0,     0)) # Dump
+    .andThen(move_to_inches(drivetrain,  16,     41.0,     0)) # Dump
     .andThen(move_to_inches(drivetrain,  8,     43.0,     0))
     .andThen(extend_dumper(dumper))
 
@@ -172,10 +176,10 @@ auto_command2 = (
     .andThen(move_to_inches(drivetrain,  79,     38,    90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  79,     22.5,    90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  86,     22.5,    90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  86,     38,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  86,     36,    90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  84,     25,    90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  84,     20,    -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  86,     7,       -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  86,     9,       -90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  86,     22.5,       -90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  79,     22.5,    -90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  79,     7,     -90, speed=0.4))
@@ -185,14 +189,18 @@ auto_command2 = (
     .andThen(move_to_inches(drivetrain,  73,     22.5,    -90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  68,     22.5,     -90, speed=0.4)) 
     .andThen(move_to_inches(drivetrain,  68,     7,     -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  68,     22.5,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  68,     15,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  68,     22.5,    0, speed=0.4))
+
     .andThen(move_to_inches(drivetrain,  40,     22.5,     0, speed=0.4))
 
-
-
-
-
-
+    # Nebulite box
+    .andThen(move_to_inches(drivetrain,  47,     15,     90, speed=0.4))
+    .andThen(release_box(mover))
+    .andThen(move_to_inches(drivetrain,  47,     6,     90, speed=0.4))
+    .andThen(grab_box(mover))
+    .andThen(move_to_inches(drivetrain,  40,     20,     90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  7,     20,     0, speed=0.2))
 
     .andThen(stop_intake(intake))
 )
