@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <hardware/pwm.h>
 #include <hardware/adc.h>
+#include <pico/multicore.h>
 
 // Buff written to by i2c
 static volatile uint8_t i2c_mem[BUFF_SIZE];
@@ -238,6 +239,11 @@ static void update_start_led() {
     mem->light_on = led_adc > 2000;
 }
 
+void stepper_core_thread() {
+    while(true) {
+        update_dumper();
+    }
+}
 
 int main() {
     float dt;
@@ -269,6 +275,7 @@ int main() {
     printf("Motor init\n");
     init_intake();
     init_dumper();
+    multicore_launch_core1(&stepper_core_thread);
     init_servos();
     init_armed_switch();
 
@@ -287,6 +294,7 @@ int main() {
             mem->target_intake_v = 0;
             mem->beacon_pos = 0;
             mem->box_mover_pos = 0;
+            mem->armed = 0;
         } else {
             mem->armed = gpio_get(PIN_ARMED);
         }
@@ -311,7 +319,6 @@ int main() {
             count++; 
             
         }
-        update_dumper();
         watchdog_update();
         
 #ifdef PICO_W

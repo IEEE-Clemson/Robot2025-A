@@ -28,6 +28,7 @@ target_link_libraries(drivetrain_native
     pico_stdlib 
     pico_sync
     pico_i2c_slave
+pico_multicore
     hardware_gpio
     hardware_adc
     hardware_pio

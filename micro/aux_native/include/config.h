@@ -82,7 +82,7 @@ static const int BOX_MOVER_OPEN_POS = (int)(2.7 / 20.0 * 65536);
 // BEACON MOVER CONFIG
 static const int BEACON_STOWED_POS = (int)(2.2 / 20.0 * 65536);
 static const int BEACON_TRAVEL_POS = (int)(1.8 / 20.0 * 65536);
-static const int BEACON_DEPLOY_POS = (int)(1.4 / 20.0 * 65536);
+static const int BEACON_DEPLOY_POS = (int)(1.3 / 20.0 * 65536);
 
 // START LED CONFIG
 static const int START_THRESH = 2000;
