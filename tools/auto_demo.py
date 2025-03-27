@@ -37,7 +37,6 @@ def sweep_gems_trajectory(drivetrain: Drivetrain):
     # Should approximately be at 18, 35.5, -90
     start = drivetrain.pose()
     poses = []
-    
     # X dist between sweeping patterns
     dx = 9
     # Number of cycles (top to bottom to top)
@@ -70,13 +69,13 @@ def sweep_gems_trajectory(drivetrain: Drivetrain):
 
 def sweep_gems_trajectory2(drivetrain: Drivetrain):
     x_i = 6
-    x_f = 46
+    x_fs = [47, 84, 47, 39, 39]
     y_i = 35.5-8
-    dy = -6
-    n = 4
+    dy = -5.5
+    n = 5
     cmds = []
     for i in range(n):
-        cmd = move_to_inches(drivetrain, x_f, y_i + i*dy, 0, accuracy=0.05, speed=0.4) \
+        cmd = move_to_inches(drivetrain, x_fs[i], y_i + i*dy, 0, accuracy=0.05, speed=0.4) \
             .andThen(move_to_inches(drivetrain, x_i, y_i + i*dy, 0, accuracy=0.05, speed=0.4)) \
             .andThen(move_to_inches(drivetrain, x_i, y_i + (i+1)*dy, 0, accuracy=0.05, speed=0.4))
         cmds.append(cmd)
@@ -132,49 +131,66 @@ drivetrain.reset_odom_inches(31.5, 6, 0)
 auto_command2 = (
     commands2.WaitCommand(1).ignoringDisable(True)
     .andThen(start_intake(intake))
-    .andThen(move_to_inches(drivetrain,            31.5, 12,   -20))
-    .andThen(move_to_inches(drivetrain,            33, 9,    180))
-    .andThen(move_to_inches(drivetrain,            30, 6,    180))
-    .andThen(move_to_inches(drivetrain,            10, 6,    180))
-
-    .andThen(move_to_inches(drivetrain,            7, 24.0,    0)) #Beacon
-    .andThen(move_to_inches(drivetrain,            16, 24.0,   0))
-    .andThen(travel_beacon(beacon))
-    .andThen(move_to_inches(drivetrain,  5,     24.0,     0, 0.1))
+    .andThen(move_to_inches(drivetrain,            31.5, 24.0,   180))
+    .andThen(move_to_inches(drivetrain,            6, 24.0,   180))
+     .andThen(move_to_inches(drivetrain,            24, 24.0,   0))
+     .andThen(travel_beacon(beacon))
+     .andThen(move_to_inches(drivetrain,  5,     24.0,     0, 0.3))
     .andThen(extend_beacon(beacon))
-    .andThen(move_to_inches(drivetrain,  10,     24.0,     0, 0.1))
+    .andThen(move_to_inches(drivetrain,  10,     24.0,     0, 0.3))
     .andThen(retract_beacon(beacon)) 
-    .andThen(move_to_inches(drivetrain,  7,     24.0,     0, 0.1))
+    .andThen(move_to_inches(drivetrain,  7,     24.0,     0, 0.3))
+    
 
-    #  #Nebulite box move
-    .andThen(move_to_inches(drivetrain,  7,      42.0,     0))
+    .andThen(move_to_inches(drivetrain,  7,      42.0,     0)) # Nebulite box move
     .andThen(move_to_inches(drivetrain,  14,     42.0,     0))
     .andThen(move_to_inches(drivetrain,  14,     32.0,     0))
     .andThen(move_to_inches(drivetrain,  35,     32.0,     0))
     .andThen(move_to_inches(drivetrain,  35,     38.0,     0))
     .andThen(move_to_inches(drivetrain,  10,     38.0,     0))
 
-    # # Sweep
-    .andThen(move_to_inches(drivetrain,  14,     35.0,     60, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  28,     35.0,     60, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  47,     37.5,     0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  47,     37.5,     0, speed=0.4)) # Sweep
     .andThen(move_to_inches(drivetrain,  10,     37.5,     0, speed=0.4))
     .andThen(move_to_inches(drivetrain,  10,     30,     0, speed=0.4))
     .andThen(sweep_gems_trajectory2(drivetrain))
 
-    # # Dump
-    .andThen(move_to_inches(drivetrain,  16,     42.0,     0))
-    .andThen(move_to_inches(drivetrain,  8,     42.0,     0))
+
+    .andThen(move_to_inches(drivetrain,  16,     43.0,     0)) # Dump
+    .andThen(move_to_inches(drivetrain,  8,     43.0,     0))
     .andThen(extend_dumper(dumper))
 
     # Cave
     .andThen(move_to_inches(drivetrain,  40,     22.5,     0, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  84,     22.5,     0, speed=0.4))
-    # .andThen(move_to_inches(drivetrain,  83,     19,     -45, speed=0.4))
-    # .andThen(move_to_inches(drivetrain,  84,     6,     -45, speed=0.4))
-    # .andThen(move_to_inches(drivetrain,  87,     18,     -90, speed=0.4))
-    # .andThen(move_to_inches(drivetrain,  87,     6,     -90, speed=0.4))
-    # .andThen(move_to_inches(drivetrain,  83,     8,     -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  65,     22.5,     0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  67,     26,     90, speed=0.4)) # sweep start
+    .andThen(move_to_inches(drivetrain,  67,     38,     90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  67,     22.5,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  73,     22.5,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  73,     38,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  73,     22.5,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  79,     22.5,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  79,     38,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  79,     22.5,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  86,     22.5,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  86,     38,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  84,     25,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  84,     20,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  86,     7,       -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  86,     22.5,       -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  79,     22.5,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  79,     7,     -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  79,     22.5,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  73,     22.5,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  73,     7,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  73,     22.5,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  68,     22.5,     -90, speed=0.4)) 
+    .andThen(move_to_inches(drivetrain,  68,     7,     -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  68,     22.5,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  40,     22.5,     0, speed=0.4))
+
+
+
+
 
 
 

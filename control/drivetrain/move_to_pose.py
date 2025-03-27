@@ -171,7 +171,7 @@ def __trapezoidal_move_trajectory(
     start = Pose2d(start.x, start.y, rot)
     end = Pose2d(x, y, rot)
     waypoints = PathPlannerPath.waypointsFromPoses([start, end])
-    constraints = PathConstraints(speed, 0.5, 1.0, 1*math.pi, unlimited=False)
+    constraints = PathConstraints(speed, 0.5, 2.0, 1*math.pi, unlimited=False)
     path = PathPlannerPath(
         waypoints,
         constraints,
