@@ -8,6 +8,7 @@ import commands2
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds
 
+import pathplannerlib.path
 from pathplannerlib.commands import PIDConstants
 from pathplannerlib.path import (
     PathPlannerPath,
@@ -37,6 +38,8 @@ from pathplannerlib.trajectory import PathPlannerTrajectory
 
 from subsystems.drivetrain import Drivetrain
 
+pathplannerlib.path.targetIncrement = 0.005
+pathplannerlib.path.targetSpacing = 0.01
 
 class RamseteMove(commands2.Command):
     """Drives robot along a trajectory given by a lambda, making sure the robot always faces forward"""
@@ -116,7 +119,7 @@ class MoveCommand(commands2.Command):
 
         self._trajectory_controller = PPHolonomicDriveController(
             pid_consts_vxy,
-            PIDConstants(4, 0.05, 3.0, 1),
+            PIDConstants(2.0, 0.02, 0.2, 1),
         )
 
         self.addRequirements(drivetrain)
@@ -171,7 +174,7 @@ def __trapezoidal_move_trajectory(
     start = Pose2d(start.x, start.y, rot)
     end = Pose2d(x, y, rot)
     waypoints = PathPlannerPath.waypointsFromPoses([start, end])
-    constraints = PathConstraints(speed, 0.5, 2.0, 1*math.pi, unlimited=False)
+    constraints = PathConstraints(speed, 1.0, 2.0, 1*math.pi, unlimited=False)
     path = PathPlannerPath(
         waypoints,
         constraints,

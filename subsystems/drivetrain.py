@@ -44,10 +44,10 @@ class Drivetrain(Subsystem):
         self._cur_ref_y_vel = 0
         self._cur_ref_omega = 0
 
-        self.slew_rate_xy = 0.75
-        self.slew_rate_theta = 1.0
+        self.slew_rate_xy = 1.5
+        self.slew_rate_theta = 4
         self.max_speed = 0.5
-        self.max_omega = 1.0
+        self.max_omega = 1.5
         self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.15, 0.15, 0.15])
         self.offset = 0
 
