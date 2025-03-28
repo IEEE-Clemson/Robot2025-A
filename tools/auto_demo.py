@@ -7,6 +7,7 @@ from control.beacon import extend_beacon, retract_beacon, travel_beacon
 from control.dumper import extend_dumper
 from control.intake import start_intake, stop_intake
 from control.mover import grab_box, release_box
+from control.safety import wait_for_armed, wait_for_led_on
 from cu_hal.auxilliary.auxilliary_hw import AuxilliaryHW
 from cu_hal.drivetrain.drivetrain_i2c import DrivetrainI2C
 from control.drivetrain.move_to_pose import MoveCommand, RamseteMove, move_to_inches
@@ -17,6 +18,7 @@ from subsystems.drivetrain import Drivetrain, DrivetrainConfig
 from subsystems.dumper import Dumper
 from subsystems.intake import Intake
 from subsystems.mover import Mover
+from subsystems.safety import Safety
 from subsystems.vision import Vision, VisionConfig
 from subsystems.beacon import Beacon
 import commands2
@@ -27,7 +29,7 @@ def sweep_gems_trajectory2(drivetrain: Drivetrain):
     x_i = 7
     x_fs = [47, 84, 47]
     y_i = 35.5-6
-    dy = -6
+    dy = -7
     cmds = []
     for i in range(len(x_fs)):
         cmd = move_to_inches(drivetrain, x_fs[i], y_i + i*dy, 0, accuracy=0.05, speed=0.4) 
@@ -49,6 +51,7 @@ beacon = Beacon(aux_hal)
 intake = Intake(aux_hal)
 dumper = Dumper(aux_hal)
 mover = Mover(aux_hal)
+safety = Safety(aux_hal)
 
 
 vision_config = VisionConfig()
@@ -61,13 +64,14 @@ sleep(0.5)
 
 drivetrain.reset_odom_inches(31.5, 6, 0)
 auto_command2 = (
-    commands2.WaitCommand(1).ignoringDisable(True)
+    wait_for_armed(safety)
+    .andThen(wait_for_led_on(safety)) # Comment to disable checking for led
     .andThen(start_intake(intake))
     .andThen(move_to_inches(drivetrain,            31.5, 24.0,   180))
     .andThen(move_to_inches(drivetrain,            6, 22.5,   180))
-     .andThen(move_to_inches(drivetrain,            18, 24.0,   0))
-     .andThen(travel_beacon(beacon))
-     .andThen(move_to_inches(drivetrain,  6,     24.0,     0, 0.3))
+    .andThen(move_to_inches(drivetrain,            18, 24.0,   0))
+    .andThen(travel_beacon(beacon))
+    .andThen(move_to_inches(drivetrain,  6,     24.0,     0, 0.3))
     .andThen(extend_beacon(beacon))
     .andThen(move_to_inches(drivetrain,  10,     24.0,     0, 0.3))
     .andThen(retract_beacon(beacon)) 
@@ -125,10 +129,16 @@ auto_command2 = (
     # Nebulite box
     .andThen(move_to_inches(drivetrain,  47,     15,     90, speed=0.4))
     .andThen(release_box(mover))
-    .andThen(move_to_inches(drivetrain,  47,     6,     90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  47,     7,     90, speed=0.4))
     .andThen(grab_box(mover))
     .andThen(move_to_inches(drivetrain,  40,     20,     90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  7,     20,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  15,     20,     0, speed=0.2))
+    .andThen(release_box(mover))
+    .andThen(move_to_inches(drivetrain,  17,     15,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  15,     15,     0, speed=0.2))
+    .andThen(extend_dumper(dumper))
+
+
 
     .andThen(stop_intake(intake))
 )

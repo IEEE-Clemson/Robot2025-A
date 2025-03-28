@@ -26,7 +26,7 @@ class AuxilliaryHW(AuxilliaryHAL):
         byte_data = None
         for _ in range(5):
             try:
-                byte_data = bytes(self.bus.read_i2c_block_data(0x41, reg, size))
+                byte_data = bytes(self.bus.read_i2c_block_data(ADDR, reg, size))
                 break
             except OSError:
                 sleep(0.02)
