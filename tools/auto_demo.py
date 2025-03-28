@@ -24,10 +24,10 @@ import commands2
 # python -m tools.auto_demo
 
 def sweep_gems_trajectory2(drivetrain: Drivetrain):
-    x_i = 6
+    x_i = 7
     x_fs = [47, 84, 47]
     y_i = 35.5-6
-    dy = -5.5
+    dy = -6
     cmds = []
     for i in range(len(x_fs)):
         cmd = move_to_inches(drivetrain, x_fs[i], y_i + i*dy, 0, accuracy=0.05, speed=0.4) 
@@ -64,18 +64,18 @@ auto_command2 = (
     commands2.WaitCommand(1).ignoringDisable(True)
     .andThen(start_intake(intake))
     .andThen(move_to_inches(drivetrain,            31.5, 24.0,   180))
-    .andThen(move_to_inches(drivetrain,            6, 24.0,   180))
-     .andThen(move_to_inches(drivetrain,            24, 24.0,   0))
+    .andThen(move_to_inches(drivetrain,            6, 22.5,   180))
+     .andThen(move_to_inches(drivetrain,            18, 24.0,   0))
      .andThen(travel_beacon(beacon))
-     .andThen(move_to_inches(drivetrain,  5,     24.0,     0, 0.3))
+     .andThen(move_to_inches(drivetrain,  6,     24.0,     0, 0.3))
     .andThen(extend_beacon(beacon))
     .andThen(move_to_inches(drivetrain,  10,     24.0,     0, 0.3))
     .andThen(retract_beacon(beacon)) 
     .andThen(move_to_inches(drivetrain,  7,     24.0,     0, 0.3))
     
 
-    .andThen(move_to_inches(drivetrain,  7,      42.0,     0)) # Nebulite box move
-    .andThen(move_to_inches(drivetrain,  15,     42.0,     0))
+    .andThen(move_to_inches(drivetrain,  7,      37.0,     0)) # Nebulite box move
+    .andThen(move_to_inches(drivetrain,  15,     37.0,     0))
     .andThen(move_to_inches(drivetrain,  15,     32.0,     0))
     .andThen(move_to_inches(drivetrain,  34.5,     32.0,     0))
     .andThen(move_to_inches(drivetrain,  34.5,     38.0,     0))
@@ -88,7 +88,7 @@ auto_command2 = (
 
 
     .andThen(move_to_inches(drivetrain,  16,     41.0,     0)) # Dump
-    .andThen(move_to_inches(drivetrain,  8,     43.0,     0))
+    .andThen(move_to_inches(drivetrain,  6,     43.0,     0))
     .andThen(extend_dumper(dumper))
 
     # Cave
@@ -103,22 +103,22 @@ auto_command2 = (
     .andThen(move_to_inches(drivetrain,  79,     22.5,    90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  79,     38,    90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  79,     22.5,    90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  86,     22.5,    90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  86,     36,    90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  84,     25,    90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  84,     20,    -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  86,     9,       -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  86,     22.5,       -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  79,     22.5,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  84,     22.5,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  84,     36,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  82,     25,    90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  82,     20,    -90, speed=0.4)) # reverse
+    .andThen(move_to_inches(drivetrain,  84,     9,       -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  84,     27,       -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  79,     27,    -90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  79,     7,     -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  79,     22.5,    -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  73,     22.5,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  79,     27,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  73,     27,    -90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  73,     7,    -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  73,     22.5,    -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  68,     22.5,     -90, speed=0.4)) 
-    .andThen(move_to_inches(drivetrain,  68,     7,     -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  68,     15,    -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  68,     22.5,    0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  73,     27,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  66,     27,     -90, speed=0.4)) 
+    .andThen(move_to_inches(drivetrain,  66,     7,     -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  66,     15,    -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  66,     22.5,    0, speed=0.4))
 
     .andThen(move_to_inches(drivetrain,  40,     22.5,     0, speed=0.4))
 

@@ -51,6 +51,9 @@ class Drivetrain(Subsystem):
         self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.15, 0.15, 0.15])
         self.offset = 0
 
+        self.x_fudge = 1.02
+        self.y_fudge = 1.165
+
         # Config for trajectory controllers
         rx = 0.052
         ry = 0.1175
@@ -149,11 +152,11 @@ class Drivetrain(Subsystem):
 
         t = time.time()
         vx, vy, raw_theta = self._hal.set_target_wheel_velocities(
-            self._cur_ref_x_vel, self._cur_ref_y_vel, self._cur_ref_omega
+            self._cur_ref_x_vel * self.x_fudge, self._cur_ref_y_vel * self.y_fudge, self._cur_ref_omega
         )
         self._theta = raw_theta
         self._theta_odom = self._theta + self.offset
-        self._vx_local = np.array([vx, vy])
+        self._vx_local = np.array([vx / self.x_fudge, vy / self.y_fudge])
 
         self.compute_odom(dt)
         self._prev_pose = self.pose()
