@@ -18,7 +18,7 @@ id_to_pose = {
 
     5: Pose3d(0.812, 1.143, TAG_HEIGHT, Rotation3d(0, 0, pi / 2)), # North wall
     6: Pose3d(1.050, 0, TAG_HEIGHT, Rotation3d(0, 0, -pi/2)), # South wall
-    7: Pose3d(2.354, 0.572, TAG_HEIGHT, Rotation3d(0, 0, 0)), # East wall
+    #7: Pose3d(2.354, 0.572, TAG_HEIGHT, Rotation3d(0, 0, 0)), # East wall
 }
 
 class Vision(Subsystem):
