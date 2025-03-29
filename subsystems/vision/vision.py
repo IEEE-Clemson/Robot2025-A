@@ -44,6 +44,7 @@ class Vision(Subsystem):
         # Calculate pose2d from tags
         for tag in self.cur_tags:
             t = tag.t
+            print(tag.id)
             if tag.id not in id_to_pose:
                 continue
             # 3D pose, Ideally should have z = 0, and only yaw rotation

@@ -30,7 +30,7 @@ drivetrain_hal = DrivetrainI2C(bus)
 drivetrain = Drivetrain(DrivetrainConfig(), drivetrain_hal)
 drivetrain.drive_raw_local(0, 0, 0)
 drivetrain.periodic()
-drivetrain.reset_odom_inches(32.25, 8, -90)
+drivetrain.reset_odom_inches(32.25, 8, 0)
 
 aux_hal = AuxilliaryHW(bus)
 beacon = Beacon(aux_hal)
@@ -42,7 +42,7 @@ safety = Safety(aux_hal)
 
 vision_config = VisionConfig()
 vision_config.should_display = False
-vision_config.dev_index = 0
+vision_config.dev_index = -1
 #vision_config.should_display = True
 vision = Vision(vision_config)
 vision.add_pose2d_callback = drivetrain.pose_estimator.add_vision_pose
@@ -63,13 +63,13 @@ def place_nebulite_box(y: float) -> commands2.Command:
     
 
 def place_nebulite0() -> commands2.Command:
-    y = 7
+    y = 6.5
     return (
-    move_to_inches(drivetrain,            11.5, y,   0)
+    move_to_inches(drivetrain,            11.5, y,   0, speed=0.2)
     .andThen(release_box(mover))
     .andThen(move_to_inches(drivetrain,  18, y,     0, speed=0.2))
     .andThen(move_to_inches(drivetrain,  20, 15,     0, speed=0.2))
-    .andThen(move_to_inches(drivetrain,  5.5,  12,     90, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  5.5,  11,     90, speed=0.2))
     .andThen(extend_dumper(dumper))
     .andThen(move_to_inches(drivetrain,  5.5,  9,     90, speed=0.4))
     )
@@ -84,13 +84,23 @@ def place_nebulite3() -> commands2.Command:
     return place_nebulite_box(4.25 + 5.7 - 3 + 9 * 3)
     
 def place_nebulite4() -> commands2.Command:
-    return commands2.WaitCommand(2)
+    y = 6.5
+    return (
+    move_to_inches(drivetrain,            19, 38,   -90, speed=0.2)
+    .andThen(release_box(mover))
+    .andThen(move_to_inches(drivetrain,  19, 30,     -90, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  30, 30,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  30, 42,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  17, 42,     0, speed=0.4))
+    .andThen(extend_dumper(dumper))
+    .andThen(move_to_inches(drivetrain,  15, 42,     0, speed=0.4))
+    )
     
 
 
 def sweep_gems_trajectory2(drivetrain: Drivetrain):
-    x_i = 7
-    x_fs = [47, 84, 47, 42]
+    x_i = 8
+    x_fs = [47, 50, 47, 42]
     y_i = 35.5-6
     dy = -7
     cmds = []
@@ -105,9 +115,9 @@ def sweep_gems_trajectory2(drivetrain: Drivetrain):
 
 auto_command2 = (
     wait_for_armed(safety)
-    .andThen(commands2.InstantCommand(lambda: drivetrain.reset_odom_inches(32.25, 8, -90)).ignoringDisable(True))
-    #.andThen(wait_for_led_on(safety)) # Comment to disable checking for led
-    .andThen(start_intake(intake))
+    .andThen(commands2.InstantCommand(lambda: drivetrain.reset_odom_inches(31.5, 8, 0)).ignoringDisable(True))
+    .andThen(wait_for_led_on(safety)) # Comment to disable checking for led
+    .andThen((start_intake(intake)
     .andThen(move_to_inches(drivetrain,            31.5, 24.0,   180))
     .andThen(move_to_inches(drivetrain,            9, 22.5,   180))
     .andThen(move_to_inches(drivetrain,            18, 24.0,   0))
@@ -124,7 +134,7 @@ auto_command2 = (
     .andThen(move_to_inches(drivetrain,  16,     32.0,     0))
     .andThen(move_to_inches(drivetrain,  36.5,     32.0,     0))
     .andThen(move_to_inches(drivetrain,  36.5,     38.0,     0))
-    .andThen(move_to_inches(drivetrain,  10,     38.0,     0))
+    .andThen(move_to_inches(drivetrain,  12,     38.0,     0))
 
     .andThen(move_to_inches(drivetrain,  47,     37.5,     0, speed=0.4)) # Sweep
     .andThen(move_to_inches(drivetrain,  12,     37.5,     0, speed=0.4))
@@ -133,11 +143,15 @@ auto_command2 = (
 
 
     .andThen(move_to_inches(drivetrain,  16,     41.0,     0)) # Dump
-    .andThen(move_to_inches(drivetrain,  6,     43.0,     0))
+    .andThen(move_to_inches(drivetrain,  8,     43.0,     0))
     .andThen(extend_dumper(dumper))
+    .andThen(move_to_inches(drivetrain,  6,     43.0,     0, speed=0.4))
+
 
     # Cave
     .andThen(move_to_inches(drivetrain,  40,     22.5,     0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  65,     22.5,     0, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  84,     22.5,     0, speed=0.4))
     .andThen(move_to_inches(drivetrain,  65,     22.5,     0, speed=0.4))
     .andThen(move_to_inches(drivetrain,  67,     26,     90, speed=0.4)) # sweep start
     .andThen(move_to_inches(drivetrain,  67,     39,     90, speed=0.4))
@@ -168,12 +182,17 @@ auto_command2 = (
     .andThen(move_to_inches(drivetrain,  40,     22.5,     0, speed=0.4))
 
     #Nebulite box
-    .andThen(move_to_inches(drivetrain,  47,     15,     90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  43,     28,     90, speed=0.4))
+
+    .andThen(move_to_inches(drivetrain,  43,     16,     90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  47,     16,     90, speed=0.4))
     .andThen(release_box(mover))
     .andThen(move_to_inches(drivetrain,  47,     9,     90, speed=0.4))
     .andThen(grab_box(mover))
-    .andThen(move_to_inches(drivetrain,  40,     20,     90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  30,     20,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  40,     20,     90, speed=0.1))
+    .andThen(move_to_inches(drivetrain,  37.5,     20,     180, speed=0.1))
+    .andThen(move_to_inches(drivetrain,  35,     20,     -90, speed=0.1))
+    .andThen(move_to_inches(drivetrain,  32.5,     20,     0, speed=0.1))
     .andThen(commands2.WaitCommand(0.5))
     .andThen(place_nebulite0().onlyIf(lambda: vision.get_telemetry() == 0))
     .andThen(place_nebulite1().onlyIf(lambda: vision.get_telemetry() == 1))
@@ -182,7 +201,7 @@ auto_command2 = (
     .andThen(place_nebulite4().onlyIf(lambda: vision.get_telemetry() == 4))
 
     .andThen(stop_intake(intake))
-    .andThen(mover_off(mover))
+    .andThen(mover_off(mover))).withTimeout(170))
 ).ignoringDisable(True)
 def update_thread():
     t = time()

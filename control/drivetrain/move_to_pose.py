@@ -208,5 +208,5 @@ def move_to_inches(
         drivetrain,
         lambda drivetrain: __trapezoidal_move_trajectory(drivetrain, x / METERS_TO_INCHES, y / METERS_TO_INCHES, theta * math.pi / 180, speed),
         accuracy = accuracy
-    )
+    ).withTimeout(10)
 

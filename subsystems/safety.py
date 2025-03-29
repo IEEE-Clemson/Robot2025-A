@@ -9,7 +9,7 @@ class Safety(Subsystem):
 
     def is_armed(self) -> bool:
         print("isarmed")
-        return self.hal.is_armed()
+        return not self.hal.is_armed()
 
     def is_light_on(self) -> bool:
         print("Wait for LED")
