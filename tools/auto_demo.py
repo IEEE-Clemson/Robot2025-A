@@ -50,19 +50,31 @@ sleep(0.5)
 
 drivetrain.reset_odom_inches(31.5, 6, 0)
 
-def place_nebulite0():
-    pass
+def place_nebulite_box(y: float) -> commands2.Command:
+    return (
+    move_to_inches(drivetrain,            7, y,   180)
+    .andThen(release_box(mover))
+    .andThen(move_to_inches(drivetrain,  9,     y,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  6,     y,     0, speed=0.2))
+    .andThen(extend_dumper(dumper))
+    )
+    
 
-def place_nebulite1():
-    pass
-def place_nebulite2():
-    pass
+def place_nebulite0() -> commands2.Command:
+    return place_nebulite_box(4.25 + 5.7 - 3)
 
-def place_nebulite3():
-    pass
-
-def place_nebulite4():
-    pass
+def place_nebulite1() -> commands2.Command:
+    return place_nebulite_box(4.25 + 5.7 - 3 + 9)
+    
+def place_nebulite2() -> commands2.Command:
+    return place_nebulite_box(4.25 + 5.7 - 3 + 9 * 2)
+    
+def place_nebulite3() -> commands2.Command:
+    return place_nebulite_box(4.25 + 5.7 - 3 + 9 * 3)
+    
+def place_nebulite4() -> commands2.Command:
+    return commands2.WaitCommand(2)
+    
 
 
 def sweep_gems_trajectory2(drivetrain: Drivetrain):
@@ -150,11 +162,13 @@ auto_command2 = (
     .andThen(move_to_inches(drivetrain,  47,     7,     90, speed=0.4))
     .andThen(grab_box(mover))
     .andThen(move_to_inches(drivetrain,  40,     20,     90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  15,     20,     0, speed=0.2))
-    .andThen(release_box(mover))
-    .andThen(move_to_inches(drivetrain,  17,     15,     0, speed=0.2))
-    .andThen(move_to_inches(drivetrain,  15,     15,     0, speed=0.2))
-    .andThen(extend_dumper(dumper))
+    .andThen(move_to_inches(drivetrain,  30,     20,     0, speed=0.2))
+    .andThen(commands2.WaitCommand(2))
+    .andThen(place_nebulite0().onlyIf(lambda: vision.get_telemetry() == 0))
+    .andThen(place_nebulite1().onlyIf(lambda: vision.get_telemetry() == 1))
+    .andThen(place_nebulite2().onlyIf(lambda: vision.get_telemetry() == 2 or vision.get_telemetry() is None))
+    .andThen(place_nebulite3().onlyIf(lambda: vision.get_telemetry() == 3))
+    .andThen(place_nebulite4().onlyIf(lambda: vision.get_telemetry() == 4))
 
     .andThen(stop_intake(intake))
 )
