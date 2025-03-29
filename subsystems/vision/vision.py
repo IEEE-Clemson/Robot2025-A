@@ -72,6 +72,9 @@ class Vision(Subsystem):
     def get_telemetry(self) -> int|None:
         max_count = max(self._telemetry_counts)
         if max_count == 0:
+            print("Get telemetry, NONE")
             return None
         else:
+            print("Get telemetry, ",  self._telemetry_counts.index(max_count))
+
             return self._telemetry_counts.index(max_count)

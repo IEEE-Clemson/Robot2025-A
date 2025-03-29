@@ -9,7 +9,7 @@ class Intake(Subsystem):
         hal.set_intake_speed(0)
 
     def start(self):
-        self.hal.set_intake_speed(13.9)
+        self.hal.set_intake_speed(19.99)
 
     def stop(self):
         self.hal.set_intake_speed(0)

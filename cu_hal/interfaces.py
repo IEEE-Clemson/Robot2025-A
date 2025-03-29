@@ -48,6 +48,9 @@ class AuxilliaryHAL(Protocol):
     def release_box(self):
         ...
 
+    def box_grabber_off(self):
+        ...
+
     @abstractmethod
     def travel_beacon(self):
         ...

@@ -6,12 +6,12 @@ bus = smbus2.SMBus(1)
 
 aux = AuxilliaryHW(bus)
 
-print("Testing beacon")
-aux.extend_beacon()
-time.sleep(1)
-aux.travel_beacon()
-time.sleep(2)
-aux.retract_beacon()
+# print("Testing beacon")
+# aux.extend_beacon()
+# time.sleep(1)
+# aux.travel_beacon()
+# time.sleep(2)
+# aux.retract_beacon()
 
 print("Testing dropper")
 print("Dropper running", aux.is_dropper_running())

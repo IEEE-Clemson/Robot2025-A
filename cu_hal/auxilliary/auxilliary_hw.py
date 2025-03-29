@@ -4,7 +4,7 @@ import smbus2
 import struct
 
 ADDR = 0x24 
-MAX_INTAKE_SPEED = 14.0
+MAX_INTAKE_SPEED = 20.0
 INT16_MAX = 1 << 15
 
 class AuxilliaryHW(AuxilliaryHAL):
@@ -37,6 +37,9 @@ class AuxilliaryHW(AuxilliaryHAL):
 
     def grab_box(self):
         self._attempt_write(0x9, bytes([0]))
+
+    def box_grabber_off(self):
+        self._attempt_write(0x9, bytes([3]))
 
     def release_box(self):
         self._attempt_write(0x9, bytes([1]))

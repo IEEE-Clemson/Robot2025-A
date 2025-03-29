@@ -6,7 +6,7 @@ from smbus2 import SMBus
 from control.beacon import extend_beacon, retract_beacon, travel_beacon
 from control.dumper import extend_dumper
 from control.intake import start_intake, stop_intake
-from control.mover import grab_box, release_box
+from control.mover import grab_box, mover_off, release_box
 from control.safety import wait_for_armed, wait_for_led_on
 from cu_hal.auxilliary.auxilliary_hw import AuxilliaryHW
 from cu_hal.drivetrain.drivetrain_i2c import DrivetrainI2C
@@ -52,16 +52,27 @@ drivetrain.reset_odom_inches(31.5, 6, 0)
 
 def place_nebulite_box(y: float) -> commands2.Command:
     return (
-    move_to_inches(drivetrain,            7, y,   180)
+    move_to_inches(drivetrain,            16, y,   0)
     .andThen(release_box(mover))
-    .andThen(move_to_inches(drivetrain,  9,     y,     0, speed=0.2))
-    .andThen(move_to_inches(drivetrain,  6,     y,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  18,     y,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  18,     y-5,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  15,     y-5,     0, speed=0.2))
     .andThen(extend_dumper(dumper))
+    .andThen(move_to_inches(drivetrain,  10,     y-5,     0, speed=0.2))
     )
     
 
 def place_nebulite0() -> commands2.Command:
-    return place_nebulite_box(4.25 + 5.7 - 3)
+    y = 7
+    return (
+    move_to_inches(drivetrain,            11.5, y,   0)
+    .andThen(release_box(mover))
+    .andThen(move_to_inches(drivetrain,  18, y,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  20, 15,     0, speed=0.2))
+    .andThen(move_to_inches(drivetrain,  5.5,  12,     90, speed=0.2))
+    .andThen(extend_dumper(dumper))
+    .andThen(move_to_inches(drivetrain,  5.5,  9,     90, speed=0.4))
+    )
 
 def place_nebulite1() -> commands2.Command:
     return place_nebulite_box(4.25 + 5.7 - 3 + 9)
@@ -95,10 +106,10 @@ def sweep_gems_trajectory2(drivetrain: Drivetrain):
 auto_command2 = (
     wait_for_armed(safety)
     .andThen(commands2.InstantCommand(lambda: drivetrain.reset_odom_inches(32.25, 8, -90)).ignoringDisable(True))
-    .andThen(wait_for_led_on(safety)) # Comment to disable checking for led
+    #.andThen(wait_for_led_on(safety)) # Comment to disable checking for led
     .andThen(start_intake(intake))
     .andThen(move_to_inches(drivetrain,            31.5, 24.0,   180))
-    .andThen(move_to_inches(drivetrain,            7, 22.5,   180))
+    .andThen(move_to_inches(drivetrain,            9, 22.5,   180))
     .andThen(move_to_inches(drivetrain,            18, 24.0,   0))
     .andThen(travel_beacon(beacon))
     .andThen(move_to_inches(drivetrain,  5.75,     24.0,     0, 0.3))
@@ -109,10 +120,10 @@ auto_command2 = (
     
 
     .andThen(move_to_inches(drivetrain,  7,      37.0,     0)) # Nebulite box move
-    .andThen(move_to_inches(drivetrain,  15,     37.0,     0))
-    .andThen(move_to_inches(drivetrain,  15,     32.0,     0))
-    .andThen(move_to_inches(drivetrain,  34.5,     32.0,     0))
-    .andThen(move_to_inches(drivetrain,  34.5,     38.0,     0))
+    .andThen(move_to_inches(drivetrain,  16,     37.0,     0))
+    .andThen(move_to_inches(drivetrain,  16,     32.0,     0))
+    .andThen(move_to_inches(drivetrain,  36.5,     32.0,     0))
+    .andThen(move_to_inches(drivetrain,  36.5,     38.0,     0))
     .andThen(move_to_inches(drivetrain,  10,     38.0,     0))
 
     .andThen(move_to_inches(drivetrain,  47,     37.5,     0, speed=0.4)) # Sweep
@@ -141,8 +152,8 @@ auto_command2 = (
     .andThen(move_to_inches(drivetrain,  84,     36,    90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  82,     30,    90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  82,     26,    -90, speed=0.4)) # reverse
-    .andThen(move_to_inches(drivetrain,  83,     9,       -90, speed=0.4))
-    .andThen(move_to_inches(drivetrain,  83,     27,       -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  82,     12,       -90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  82,     27,       -90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  79,     27,    -90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  79,     7,     -90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  79,     27,    -90, speed=0.4))
@@ -156,14 +167,14 @@ auto_command2 = (
 
     .andThen(move_to_inches(drivetrain,  40,     22.5,     0, speed=0.4))
 
-    # Nebulite box
+    #Nebulite box
     .andThen(move_to_inches(drivetrain,  47,     15,     90, speed=0.4))
     .andThen(release_box(mover))
-    .andThen(move_to_inches(drivetrain,  47,     7,     90, speed=0.4))
+    .andThen(move_to_inches(drivetrain,  47,     9,     90, speed=0.4))
     .andThen(grab_box(mover))
     .andThen(move_to_inches(drivetrain,  40,     20,     90, speed=0.4))
     .andThen(move_to_inches(drivetrain,  30,     20,     0, speed=0.2))
-    .andThen(commands2.WaitCommand(2))
+    .andThen(commands2.WaitCommand(0.5))
     .andThen(place_nebulite0().onlyIf(lambda: vision.get_telemetry() == 0))
     .andThen(place_nebulite1().onlyIf(lambda: vision.get_telemetry() == 1))
     .andThen(place_nebulite2().onlyIf(lambda: vision.get_telemetry() == 2 or vision.get_telemetry() is None))
@@ -171,7 +182,8 @@ auto_command2 = (
     .andThen(place_nebulite4().onlyIf(lambda: vision.get_telemetry() == 4))
 
     .andThen(stop_intake(intake))
-)
+    .andThen(mover_off(mover))
+).ignoringDisable(True)
 def update_thread():
     t = time()
     dt = 0.02
