@@ -25,7 +25,7 @@ used by one command at any given time e.g. you can't use `CloseGripper` and `Ope
 larger commands using decorator functions such as `andThen`, `onlyIf`, `withTimeout`, `alongWith`, etc. allowing you to create entire autonomous robot procedures.
 More explanation can be found in the [official WPILib docs](https://docs.wpilib.org/en/stable/docs/software/commandbased/what-is-command-based.html)
 
-In our implementation, commands are found in [control] and subsystems are found in [subystems]. The main robot procedure is found in [tools/auto_demo]
+In our implementation, commands are found in [control]() and subsystems are found in [subystems](). The main robot procedure is found in [tools/auto_demo]()
 
 ### Picos
 The two Picos handle real time tasks that the Pi 5 would not normally be able to handle by itself.
@@ -33,14 +33,14 @@ The two Picos handle real time tasks that the Pi 5 would not normally be able to
 For the code, we use the [Pico-SDK](https://github.com/raspberrypi/pico-sdk) Although we intially attempted to use Micropython for the Pico,
 we found that there were too many bugs (random hangs) and limitations (no debugging, no i2c slave, less documentation) for our robot.
 We mostly attempt to use basic C for our implementation since it is taught to everyone; however, there are times where we 
-need to use C++ for external libraries. More details for the development process can be found in [micro/aux_native] and [micro/drivetrain_native]
+need to use C++ for external libraries. More details for the development process can be found in [micro/aux_native]() and [micro/drivetrain_native]()
 
-### Drivetrain Pico (micro/drivetrain_native)
+### Drivetrain Pico [micro/drivetrain_native]()
 The first Pico is dedicated to controlling the drivetrain. It tracks the encoders and motor output of each of 
 the four wheels of the robot with PID control. Additionally, it handles communication with an BMI055 gyro. The module takes commands
 to set the target velocity of the drivetrain and gives feedback on actual velocity and orientation.
 
-### Aux. Pico (micro/aux_native)
+### Aux. Pico [micro/aux_native]()
 The second Pico is dedicated to all other microcontroller tasks. This includes the intake motor PID, start LED detector, 
 beacon and box mover servos, and astral material dropper.
 
