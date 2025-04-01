@@ -44,12 +44,15 @@ class Drivetrain(Subsystem):
         self._cur_ref_y_vel = 0
         self._cur_ref_omega = 0
 
-        self.slew_rate_xy = 0.75
-        self.slew_rate_theta = 3.0
-        self.max_speed = 0.4
-        self.max_omega = 3.0
-        self.pose_estimator = PoseEstimator([0.02, 0.02, 0.01], [0.1, 0.1, 0.1])
+        self.slew_rate_xy = 1.5
+        self.slew_rate_theta = 4
+        self.max_speed = 0.5
+        self.max_omega = 1.5
+        self.pose_estimator = PoseEstimator([0.02, 0.02, 0.02], [0.15, 0.15, 0.15])
         self.offset = 0
+
+        self.x_fudge = 1.02
+        self.y_fudge = 1.165
 
         # Config for trajectory controllers
         rx = 0.052
@@ -79,6 +82,7 @@ class Drivetrain(Subsystem):
             ),
         )
         self.prev_time = time.time()
+        self._prev_pose = self.pose()
 
     def reset_odom(self, x: float, y: float, theta: float):
         self._x_odom = np.array([x, y])
@@ -148,16 +152,18 @@ class Drivetrain(Subsystem):
 
         t = time.time()
         vx, vy, raw_theta = self._hal.set_target_wheel_velocities(
-            self._cur_ref_x_vel, self._cur_ref_y_vel, self._cur_ref_omega
+            self._cur_ref_x_vel * self.x_fudge, self._cur_ref_y_vel * self.y_fudge, self._cur_ref_omega
         )
         self._theta = raw_theta
         self._theta_odom = self._theta + self.offset
-        self._vx_local = np.array([vx, vy])
+        self._vx_local = np.array([vx / self.x_fudge, vy / self.y_fudge])
 
         self.compute_odom(dt)
+        self._prev_pose = self.pose()
         self.pose_estimator.update_with_time(
-            self._x_odom, self._theta_odom, time.time()
-        )        
+            self._x_odom, self._theta_odom, time.time_ns()
+        )
+        #print(self.pose())
 
     def drive_raw_local(self, vx, vy, omega):
         if abs(vx) > self.max_speed:
@@ -170,7 +176,8 @@ class Drivetrain(Subsystem):
         self._target_omega = omega
 
     def get_local_vel(self) -> Tuple[float, float, float]:
-        return self._vx_local[0], self._vx_local[1], 0
+        r = self.pose().rotation() - self._prev_pose.rotation() 
+        return self._vx_local[0], self._vx_local[1], r.radians() * 50
 
     @property
     def pose_x(self):

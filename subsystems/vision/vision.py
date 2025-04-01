@@ -18,13 +18,14 @@ id_to_pose = {
 
     5: Pose3d(0.812, 1.143, TAG_HEIGHT, Rotation3d(0, 0, pi / 2)), # North wall
     6: Pose3d(1.050, 0, TAG_HEIGHT, Rotation3d(0, 0, -pi/2)), # South wall
-    7: Pose3d(2.354, 0.572, TAG_HEIGHT, Rotation3d(0, 0, 0)), # East wall
+    #7: Pose3d(2.354, 0.572, TAG_HEIGHT, Rotation3d(0, 0, 0)), # East wall
 }
 
 class Vision(Subsystem):
     def __init__(self, config: VisionConfig):
         self._config = config
         self._queue = Queue(maxsize=4096)
+        self._telemetry_counts = [0 for _ in range(5)]
         self.process = Process(target=apriltag_detector_main, args=(config, self._queue))
         self.cur_tags: List[ApriltagResult] = []
         self.cur_pose2d = []
@@ -43,6 +44,7 @@ class Vision(Subsystem):
         # Calculate pose2d from tags
         for tag in self.cur_tags:
             t = tag.t
+            print(tag.id)
             if tag.id not in id_to_pose:
                 continue
             # 3D pose, Ideally should have z = 0, and only yaw rotation
@@ -57,8 +59,23 @@ class Vision(Subsystem):
             )
             x = pose2d.translation().x
             y = pose2d.translation().y
-            if x > 0 and x < 2.1 and y > 0 and y < 2.1:
-                self.cur_pose2d.append(pose2d)
-            
-                if self.add_pose2d_callback is not None:
-                    self.add_pose2d_callback(pose2d, t)
+            if x < 0 or x > 2.2 or y < 0 or y > 1.3:
+                continue
+
+            self.cur_pose2d.append(pose2d)
+        
+            if self.add_pose2d_callback is not None:
+                self.add_pose2d_callback(pose2d, t)
+
+            if tag.id <= 4:
+                self._telemetry_counts[tag.id] += 1 
+       
+    def get_telemetry(self) -> int|None:
+        max_count = max(self._telemetry_counts)
+        if max_count == 0:
+            print("Get telemetry, NONE")
+            return None
+        else:
+            print("Get telemetry, ",  self._telemetry_counts.index(max_count))
+
+            return self._telemetry_counts.index(max_count)

@@ -5,9 +5,9 @@ bus = smbus2.SMBus(1)
 V_MAX = 2.0
 O_MAX = 8.0
 INT16_MAX = 1 << 15
-vx = 0.00
-vy = 0.0
-omega = 0
+vx = 0.1
+vy = 0.1
+omega = 0.0
 vx_raw = int(vx * INT16_MAX / V_MAX)
 vy_raw = int(vy * INT16_MAX / V_MAX)
 omega_raw = int(omega * INT16_MAX / O_MAX)
@@ -26,7 +26,7 @@ for i in range(n):
     vy_actual = data[1] * V_MAX / INT16_MAX
     o_actual = data[2] * O_MAX / INT16_MAX
     print(f"({vx_actual}, {vy_actual}, {o_actual})")
-    time.sleep(0.5)
+    time.sleep(0.1)
 print(bus.read_i2c_block_data(0x41, 6, 6))
 dt = time.time() - start
 print(dt)

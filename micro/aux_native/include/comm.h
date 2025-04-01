@@ -13,16 +13,16 @@ const int RTRUE = 0xAA;
 // Layout of the I2C registers
 struct __attribute__((__packed__)) I2CMemLayout {
     // START
-    uint8_t armed;
-    uint8_t light_on;
+    uint8_t armed; // 0
+    uint8_t light_on; // 1
 
     // INTAKE
-    int16_t target_intake_v;
-    int16_t cur_intake_v;
+    int16_t target_intake_v; // 2
+    int16_t cur_intake_v; // 4
 
     // DUMPER
-    uint8_t dumper_deploy;
-    uint8_t dumper_active;
+    uint8_t dumper_deploy; // 6
+    uint8_t dumper_active; // 7
 
     // BEACON
     uint8_t beacon_pos; // 0 - Up, 1 - Travel, 2 - Deploy 

@@ -26,6 +26,8 @@
         "config.h": "c",
         "watchdog.h": "c",
         "stdlib.h": "c",
-        "stdio_semihosting.h": "c"
+        "stdio_semihosting.h": "c",
+        "resets.h": "c",
+        "i2c.h": "c"
     }
 }

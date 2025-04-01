@@ -16,6 +16,9 @@
 #include "comm.h"
 #include "accel_stepper.h"
 #include <stdlib.h>
+#include <hardware/pwm.h>
+#include <hardware/adc.h>
+#include <pico/multicore.h>
 
 // Buff written to by i2c
 static volatile uint8_t i2c_mem[BUFF_SIZE];
@@ -35,6 +38,11 @@ AccelStepper dumper_stepper(AccelStepper::DRIVER, DUMPER_PIN_STEP, DUMPER_PIN_DI
 static int dumper_state = 0; // 0 -> Idle, 1 -> Lifting, 2 -> Shaking, 3 -> Retracting
 static absolute_time_t shake_delay;
 static bool shaking_up;
+
+// BOX MOVER
+uint box_mover_pwm;
+uint beacon_pwm;
+// BEACON PLACER
 
 static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
@@ -71,7 +79,8 @@ static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_ev
 }
 
 static bool is_heartbeat_alive() {
-    return absolute_time_diff_us(get_absolute_time(), i2c_last_heartbeat) > 500'000;
+    return true;
+    //return absolute_time_diff_us(get_absolute_time(), i2c_last_heartbeat) > 500'000;
 }
 
 static void setup_slave() {
@@ -100,7 +109,7 @@ static void update_local_vel() {
 }
 
 static void update_target_vel() {
-    motor_intake.setpoint = (float)(mem->target_intake_v) * MAX_V / INT16_MAX;
+    motor_intake.setpoint = ((float)(mem->target_intake_v)) * MAX_V / INT16_MAX;
 }
 
 static void init_dumper() {
@@ -165,13 +174,76 @@ static void update_dumper() {
 }
 
 static void init_servos() {
+    pwm_config config;
 
+    gpio_set_function(BOX_MOVER_PIN_PWM, GPIO_FUNC_PWM);
+    gpio_set_function(BEACON_PIN_PWM, GPIO_FUNC_PWM);
+    
+    box_mover_pwm = pwm_gpio_to_slice_num(BOX_MOVER_PIN_PWM);
+    beacon_pwm = pwm_gpio_to_slice_num(BEACON_PIN_PWM);
+
+    config = pwm_get_default_config();
+    pwm_config_set_clkdiv(&config, 38.0f);
+    pwm_init(box_mover_pwm, &config, true);
+    pwm_init(beacon_pwm, &config, true);
 }
 
 static void update_servos() {
+    uint16_t beacon_level = BEACON_STOWED_POS;
+    uint16_t box_mover_level = BOX_MOVER_GRIP_POS;
 
+    switch(mem->beacon_pos) {
+    case 0:
+        beacon_level = BEACON_STOWED_POS;
+        break;
+    case 1:
+        beacon_level = BEACON_TRAVEL_POS;
+        break;
+    case 2:
+        beacon_level = BEACON_DEPLOY_POS;
+        break;
+    default:
+        beacon_level = BEACON_STOWED_POS;
+        break;
+    }
+
+    switch(mem->box_mover_pos) {
+    case 0:
+        box_mover_level = BOX_MOVER_GRIP_POS;
+        break;
+    case 1:
+        box_mover_level = BOX_MOVER_OPEN_POS;
+        break;
+    default:
+        box_mover_level = BOX_MOVER_GRIP_POS;
+        break;
+    }
+    pwm_set_gpio_level(BEACON_PIN_PWM, beacon_level);
+    pwm_set_gpio_level(BOX_MOVER_PIN_PWM, box_mover_level);
 }
 
+static void init_armed_switch() {
+    gpio_init(PIN_ARMED);
+    gpio_set_dir(PIN_ARMED, false);
+    gpio_set_pulls(PIN_ARMED, true, false);
+
+    adc_init();
+    adc_gpio_init(START_PIN_SENSE);
+}
+
+static void update_start_led() {
+    uint16_t led_adc;
+    adc_select_input(2);
+    led_adc = adc_read();
+    
+    mem->light_on = led_adc > 2000;
+}
+
+void stepper_core_thread() {
+    while(true) {
+        update_dumper();
+    }
+}
 
 int main() {
     float dt;
@@ -203,7 +275,9 @@ int main() {
     printf("Motor init\n");
     init_intake();
     init_dumper();
+    multicore_launch_core1(&stepper_core_thread);
     init_servos();
+    init_armed_switch();
 
     watchdog_update();
     
@@ -220,6 +294,9 @@ int main() {
             mem->target_intake_v = 0;
             mem->beacon_pos = 0;
             mem->box_mover_pos = 0;
+            mem->armed = 0;
+        } else {
+            mem->armed = gpio_get(PIN_ARMED);
         }
 
         if(time_to_sleep < time) {
@@ -229,6 +306,8 @@ int main() {
             update_local_vel();
             update_target_vel();
 
+            update_servos();
+            update_start_led();
             // Blink led for heartbeat
             i = (i + 1) % 100;
             if(i == 0) {
@@ -236,11 +315,10 @@ int main() {
                 printf("Motor Outs: %.1f\n", motor_intake.out);
                 printf("Encoder Vel: %.1f\n", motor_intake.cur_vel);
                 led = !led;
-            }
+            }            
             count++; 
+            
         }
-        update_dumper();
-        update_servos();
         watchdog_update();
         
 #ifdef PICO_W

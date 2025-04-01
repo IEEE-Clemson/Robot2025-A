@@ -1,5 +1,5 @@
 from multiprocessing import Queue
-from time import time
+from time import time, time_ns
 from typing import List, Tuple
 import numpy as np
 import cv2
@@ -9,6 +9,28 @@ from pupil_apriltags import Detector, Detection
 from wpimath.geometry import Pose3d, Rotation3d, Transform3d, Translation3d
 
 from .vision_config import VisionConfig
+
+
+import os
+import glob
+
+def find_first_dev(pattern):
+    """
+    Finds the first /dev entry matching the given pattern.
+
+    Args:
+        pattern (str): The pattern to search for in /dev (e.g., "tty*", "sd*").
+
+    Returns:
+        str or None: The first matching /dev entry, or None if no match is found.
+    """
+    dev_pattern = os.path.join("/dev", pattern)
+    dev_entries = glob.glob(dev_pattern)
+
+    if dev_entries:
+        return dev_entries[0]
+    else:
+        return None
 
 
 class ApriltagResult:
@@ -45,26 +67,34 @@ def get_april_tag_poses(config: VisionConfig, image: np.ndarray, detector: Detec
         rotation = swap_xy @ detection.pose_R @ np.linalg.inv(swap_xy)
         # Convert to pose so that it is easier to work with
         tag_in_cam = Transform3d(Translation3d(translation), Rotation3d(rotation))
-        if detection.pose_err < 1e-7 and np.linalg.norm(detection.pose_t) < 1.5:
+        if detection.pose_err < 1e-7 and np.linalg.norm(detection.pose_t) < 1.0:
             poses.append((detection.tag_id, tag_in_cam))
     return np.array(poses)
 
 
 
 def apriltag_detector_main(config: VisionConfig, queue: Queue):
+    if config.dev_index == -1:
+        if os.path.exists('/dev/video0'):
+            config.dev_index = 0
+        elif os.path.exists('/dev/video1'):
+            config.dev_index = 1
+        elif os.path.exists('/dev/video2'):
+            config.dev_index = 2
+        elif os.path.exists('/dev/video3'):
+            config.dev_index = 3
     cap = cv2.VideoCapture(config.dev_index)
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
     cap.set(cv2.CAP_PROP_FPS, 100)
-    cap.set(cv2.CAP_PROP_EXPOSURE, 200)
     cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
-    cap.set(cv2.CAP_PROP_EXPOSURE, 500)
+    cap.set(cv2.CAP_PROP_EXPOSURE, 50)
     
     detector = Detector(families="tag36h11")
     n = 0
     while True:
-        t = time()
+        t = time_ns()
         ret, image = cap.read()
         if image is None:
             continue

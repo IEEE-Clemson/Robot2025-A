@@ -30,3 +30,59 @@ class DrivetrainHAL(Protocol):
             Tuple[float, float, float]:  Tuple of vx [m/s], vy [m/s], omega [rad/s]
         """
         ...
+
+
+class AuxilliaryHAL(Protocol):
+    """Hardware abstraction layer for the auxilliary functions of the robot
+    """
+
+    @abstractmethod
+    def idle_box(self):
+        ...
+
+    @abstractmethod
+    def grab_box(self):
+        ...
+
+    @abstractmethod
+    def release_box(self):
+        ...
+
+    def box_grabber_off(self):
+        ...
+
+    @abstractmethod
+    def travel_beacon(self):
+        ...
+
+    @abstractmethod
+    def extend_beacon(self):
+        ...
+
+    @abstractmethod
+    def retract_beacon(self):
+        ...
+
+    @abstractmethod
+    def extend_dropper(self):
+        ...
+
+    @abstractmethod
+    def is_dropper_running(self) -> bool:
+        ...
+
+    @abstractmethod
+    def set_intake_speed(self, speed: float):
+        ...
+
+    @abstractmethod
+    def get_intake_speed(self) -> float:
+        ...
+
+    @abstractmethod
+    def is_armed(self) -> bool:
+        ...
+
+    @abstractmethod
+    def is_led_on(self) -> bool:
+        ...
