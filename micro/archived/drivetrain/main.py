@@ -290,45 +290,13 @@ while True:
     utime.sleep_ms(500)
     led.toggle()
 
-def handle_control_request(speeds):
-    global target_x_vel, target_y_vel, target_omega
-    if len(speeds) != 3:
-        comm.send("CONTROL", "RESPONSE", False, local_x_vel, local_y_vel, omega)
-        return
-
-    target_x_vel = speeds[0]
-    target_y_vel = speeds[1]
-    target_omega = speeds[2]
-
-    comm.send("CONTROL", "RESPONSE", bool(True), float(local_x_vel), float(local_y_vel), float(omega))
 
 
 
 
 # Comm loop
 if not use_wifi:
-    import comms
-
-    comm = comms.Comm("NAVIGATION", comm_error_handler)
-    while True:
-        # TODO: Ask to increase baud rate from 9600bps to 115200bps
-        # If average packet size is ~16 bytes, we can only send 60 packets per second vs 720 packets per second
-        try:
-            packet = comm.receive()
-            if packet is None:
-                continue
-
-            # TODO: Update packet names
-            if packet.command_str == "MOVE FORWARD":
-                # This can be 4 16 bit ints in the future, but use floats for simplicity atm
-                t = utime.ticks_us()
-                #handle_control_request(packet.arguments)
-                print(utime.ticks_us() - t)
-                
-            if packet.command_str == "STATUS":
-                comm.send("CONTROL", "RESPONSE", bool(True), float(local_x_vel), float(local_y_vel), float(omega))
-        except Exception as e:
-            print("Warning: ", e)
+    pass
 else:
     static_ip = "192.168.1.100"  # Replace with your desired static IP
     subnet_mask = "255.255.255.0"
