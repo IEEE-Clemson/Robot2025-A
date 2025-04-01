@@ -179,6 +179,8 @@ static void init_servos() {
     gpio_set_function(BOX_MOVER_PIN_PWM, GPIO_FUNC_PWM);
     gpio_set_function(BEACON_PIN_PWM, GPIO_FUNC_PWM);
     
+    mem->box_mover_pos = 3;
+    mem->beacon_pos = 0;
     box_mover_pwm = pwm_gpio_to_slice_num(BOX_MOVER_PIN_PWM);
     beacon_pwm = pwm_gpio_to_slice_num(BEACON_PIN_PWM);
 
@@ -188,9 +190,11 @@ static void init_servos() {
     pwm_init(beacon_pwm, &config, true);
 }
 
+static uint16_t beacon_level = BEACON_STOWED_POS;
+static uint16_t box_mover_level = BOX_MOVER_GRIP_POS;
+static uint16_t cur_beacon_level = BEACON_STOWED_POS;
 static void update_servos() {
-    uint16_t beacon_level = BEACON_STOWED_POS;
-    uint16_t box_mover_level = BOX_MOVER_GRIP_POS;
+    uint16_t slew = 10;
 
     switch(mem->beacon_pos) {
     case 0:
@@ -214,11 +218,30 @@ static void update_servos() {
     case 1:
         box_mover_level = BOX_MOVER_OPEN_POS;
         break;
+    case 2:
+        box_mover_level = BOX_MOVER_IDLE_POS;
+        break;
+    case 3:
+        box_mover_level = BOX_MOVER_OFF_POS;
+        break;
     default:
-        box_mover_level = BOX_MOVER_GRIP_POS;
+        box_mover_level = BOX_MOVER_OFF_POS;
         break;
     }
-    pwm_set_gpio_level(BEACON_PIN_PWM, beacon_level);
+    if(cur_beacon_level < beacon_level) {
+        if(cur_beacon_level + slew > beacon_level) {
+            cur_beacon_level = beacon_level;
+        } else {
+            cur_beacon_level += slew;
+        }
+    } else if(cur_beacon_level > beacon_level) {
+        if(cur_beacon_level - slew < beacon_level) {
+            cur_beacon_level = beacon_level;
+        } else {
+            cur_beacon_level -= slew;
+        }
+    }
+    pwm_set_gpio_level(BEACON_PIN_PWM, cur_beacon_level);
     pwm_set_gpio_level(BOX_MOVER_PIN_PWM, box_mover_level);
 }
 
@@ -236,7 +259,7 @@ static void update_start_led() {
     adc_select_input(2);
     led_adc = adc_read();
     
-    mem->light_on = led_adc > 2000;
+    mem->light_on = led_adc > 1300;
 }
 
 void stepper_core_thread() {
@@ -275,6 +298,8 @@ int main() {
     printf("Motor init\n");
     init_intake();
     init_dumper();
+    multicore_reset_core1();
+    sleep_ms(100);
     multicore_launch_core1(&stepper_core_thread);
     init_servos();
     init_armed_switch();
@@ -293,8 +318,8 @@ int main() {
             mem->dumper_deploy = 0;
             mem->target_intake_v = 0;
             mem->beacon_pos = 0;
-            mem->box_mover_pos = 0;
-            mem->armed = 0;
+            mem->box_mover_pos = 3;
+            //mem->armed = 0;
         } else {
             mem->armed = gpio_get(PIN_ARMED);
         }

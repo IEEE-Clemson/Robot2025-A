@@ -27,6 +27,7 @@ static int16_t roll_raw, pitch_raw, yaw_raw;
 
 // Layout for usage in program
 static volatile struct I2CMemLayout *mem = (volatile struct I2CMemLayout*)(i2c_mem);
+static volatile absolute_time_t i2c_last_heartbeat;
 
 static struct PIDParams pid_params;
 static struct PIMotorMod10A motor_fl, motor_fr, motor_bl, motor_br;
@@ -34,6 +35,7 @@ static struct BNO055_GYRO imu;
 
 static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_event_t event) {
     uint8_t byte;
+    i2c_last_heartbeat = get_absolute_time();
     switch (event) {
     case I2C_SLAVE_RECEIVE: // master has written some data
         if (!i2c_addr_written) {
@@ -62,6 +64,11 @@ static void __not_in_flash_func(i2c_slave_handler)(i2c_inst_t *i2c, i2c_slave_ev
     default:
         break;
     }
+}
+
+static bool is_heartbeat_alive() {
+    int diff = absolute_time_diff_us(i2c_last_heartbeat, get_absolute_time());
+    return diff < 500000;
 }
 
 static void setup_slave() {
@@ -173,6 +180,13 @@ int main() {
     while(true) {
         time = get_absolute_time();
         time_to_sleep = delayed_by_ms(time, 1000 / FREQ);
+
+        if(!is_heartbeat_alive()) {
+            mem->target_vx = 0;
+            mem->target_vy = 0;
+            mem->target_omega = 0;
+        }
+
         pi_motor_mod10a_update(&motor_fl, dt);
         pi_motor_mod10a_update(&motor_fr, dt);
         pi_motor_mod10a_update(&motor_bl, dt);

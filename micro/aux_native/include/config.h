@@ -28,7 +28,7 @@ static const uint I2C_SLAVE_SDA_PIN = 20;
 static const uint I2C_SLAVE_SCL_PIN = 21;
 
 // Maximum speed possible for usage in I2C communication
-static const float MAX_V = 14.0f;
+static const float MAX_V = 20.0f;
 
 // MOTOR PIN CONFIG
 // These should be constant and not configurable from host
@@ -67,18 +67,19 @@ static const int BUZZER_PIN = 10;
 
 // DUMPER CONFIG
 // Acceleration in steps per second per second 
-static const int DUMPER_ACCEL = 8000;
+static const int DUMPER_ACCEL = 20000;
 // Max steps per second
-static const int DUMPER_MAX_VEL = 6000;
+static const int DUMPER_MAX_VEL = 20000;
 
 // Target steps for dumping
-static const int DUMPER_TARGET_POS = -3650;
+static const int DUMPER_TARGET_POS = -3800;
 // Shake steps
 static const int DUMPER_SHAKE_STEPS = 15;
 
 // BOX MOVER CONFIG
-static const int BOX_IDLE_POS = (int)(1.8 / 20.0 * 65536);
-static const int BOX_MOVER_GRIP_POS = (int)(2.0 / 20.0 * 65536);
+static const int BOX_MOVER_OFF_POS = (int)(0);
+static const int BOX_MOVER_IDLE_POS = (int)(1.8 / 20.0 * 65536);
+static const int BOX_MOVER_GRIP_POS = (int)(1.95 / 20.0 * 65536);
 static const int BOX_MOVER_OPEN_POS = (int)(2.7 / 20.0 * 65536);
 
 // BEACON MOVER CONFIG
