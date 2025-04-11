@@ -1,6 +1,8 @@
 """ GUI to drive the drivetrain through wifi
 """
-
+from cu_hal.auxilliary.auxilliary_hw import AuxilliaryHW
+from cu_hal.drivetrain.drivetrain_i2c import DrivetrainI2C
+from smbus2 import SMBus
 from math import pi
 import socket
 from threading import Thread
@@ -12,26 +14,42 @@ import commands2
 from control.drivetrain.move_to_pose import move_to_inches
 from cu_hal.drivetrain.drivetrain_wifi import DrivetrainWifi
 from cu_hal.drivetrain.drivetrain_sim import DrivetrainSim
+from subsystems.beacon import Beacon
 from subsystems.drivetrain import Drivetrain, DrivetrainConfig
+from subsystems.dumper import Dumper
+from subsystems.intake import Intake
+from subsystems.mover import Mover
+from subsystems.safety import Safety
 from subsystems.vision import Vision, VisionConfig
 
-# Define the server address and port
-SHOULD_USE_VISION = True
-HOST = "192.168.1.100"  # The server's hostname or IP address
-PORT = 8080  # The port used by the server
+from control.beacon import extend_beacon, retract_beacon, travel_beacon
+from control.dumper import extend_dumper
+from control.intake import start_intake, stop_intake
+from control.mover import grab_box, mover_off, release_box
+from control.safety import wait_for_armed, wait_for_led_on
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-sock.connect((HOST, PORT))
+bus = SMBus(1)
+drivetrain_hal = DrivetrainI2C(bus)
+drivetrain = Drivetrain(DrivetrainConfig(), drivetrain_hal)
+drivetrain.drive_raw_local(0, 0, 0)
+drivetrain.periodic()
+drivetrain.reset_odom_inches(32.25, 8, 0)
 
-drivetrain = Drivetrain(DrivetrainConfig(), DrivetrainWifi(sock))
-if SHOULD_USE_VISION:
-    vision_config = VisionConfig()
-    vision_config.should_display = True
-    vision_config.dev_index = 4
-    vision = Vision(vision_config)
-    vision.add_pose2d_callback = drivetrain.pose_estimator.add_vision_pose
-#drivetrain = Drivetrain(DrivetrainConfig(), DrivetrainSim())
+aux_hal = AuxilliaryHW(bus)
+beacon = Beacon(aux_hal)
+intake = Intake(aux_hal)
+dumper = Dumper(aux_hal)
+mover = Mover(aux_hal)
+safety = Safety(aux_hal)
+
+
+vision_config = VisionConfig()
+vision_config.should_display = False
+vision_config.dev_index = -1
+#vision_config.should_display = True
+vision = Vision(vision_config)
+vision.add_pose2d_callback = drivetrain.pose_estimator.add_vision_pose
 
 cur_ref_x_vel = 0
 cur_ref_y_vel = 0
@@ -44,6 +62,8 @@ target_ref_omega = 0
 slew_rate_xy = 0.5
 slew_rate_theta = 3.0
 
+led_on = False
+armed = False
 
 def update():
     drivetrain.drive_raw_local(target_ref_x_vel, target_ref_y_vel, target_ref_omega)
@@ -52,27 +72,24 @@ def update():
 drive_command = commands2.cmd.run(update, drivetrain).ignoringDisable(True)
 drivetrain.setDefaultCommand(drive_command)
 
-move_pose_command = move_to_inches(drivetrain,      31.25, 23, 0) \
-                .andThen(move_to_inches(drivetrain, 75,    23, 0)) \
-                .andThen(move_to_inches(drivetrain, 27.5,  23, 0)) \
-                .andThen(move_to_inches(drivetrain, 27.5,  47, 0)) \
-                .andThen(commands2.InstantCommand(lambda: drivetrain.reset_odom(0.7, 39, 0), drivetrain).ignoringDisable(True)) \
-                .andThen(move_to_inches(drivetrain, 27.5,  39, 0)) \
 
 
 def update_thread():
+    global led_on, armed
     t = time()
-    dt = 0.05
+    dt = 0.02
     commands2.CommandScheduler.getInstance().enable()
 
     while True:
-        target_t = 0.02 - dt
-        if target_t > 0:
-            sleep(target_t)
+        t = time()
         commands2.CommandScheduler.getInstance().run()
         t_new = time()
-        dt = t_new - t
-        t = t_new
+        #print(t_new - t)
+        to_sleep = dt - (t_new - t)
+        if to_sleep > 0:
+            sleep(to_sleep)
+        led_on = safety.is_light_on()
+        armed = safety.is_armed()
 
 
 class Window(QWidget):
@@ -93,6 +110,8 @@ class Window(QWidget):
         self.odom_values_label.setText(
             f"X: {odom_x:.2F} Y: {odom_y:.2F} T: {odom_theta:.2F}"
         )
+        self.led_values_label.setText(led_on)
+        self.armed_values_label.setText(armed)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -105,6 +124,10 @@ class Window(QWidget):
         self.cur_vel_values_label = QLabel("", self)
         self.odom_label = QLabel("Estimated pose: ", self)
         self.odom_values_label = QLabel("", self)
+        self.led_label = QLabel("LED on: ", self)
+        self.led_values_label = QLabel("", self)
+        self.armed_label = QLabel("Armed: ", self)
+        self.armed_values_label = QLabel("", self)
 
         grid.addWidget(self.target_vel_label, 0, 0)
         grid.addWidget(self.target_vel_values_label, 0, 1)
@@ -133,6 +156,28 @@ class KeyHandler(QObject):
             text = event.text()
             self.keys[text.lower()] = True
             self.update_speeds()
+            if text.lower() == "i":
+                retract_beacon(beacon).schedule()
+            if text.lower() == "o":
+                travel_beacon(beacon).schedule()
+            if text.lower() == "p":
+                extend_beacon(beacon).schedule()
+
+            if text.lower() == "f":
+                extend_dumper(dumper).schedule()
+
+            if text.lower() == "1":
+                start_intake(intake).schedule()
+
+            if text.upper() == "2":
+                stop_intake(intake).schedule()
+
+            if text.lower() == "b":
+                mover_off(mover).schedule()
+            if text.lower() == "n":
+                grab_box(mover).schedule()
+            if text.lower() == "m":
+                release_box(mover).schedule()            
 
         elif event.type() == QEvent.KeyRelease:
             if event.isAutoRepeat():
@@ -167,9 +212,6 @@ class KeyHandler(QObject):
             target_ref_omega = cw * -1
         else:
             target_ref_omega = 0
-        if self.keys["g"] and not move_pose_command.isScheduled():
-            move_pose_command.schedule()
-
 
 # Create timer for updating
 Thread(target=update_thread, daemon=True).start()
